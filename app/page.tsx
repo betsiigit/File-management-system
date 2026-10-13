@@ -338,58 +338,63 @@ const newFile: OfficeFile = {
   </div>
 )}
 
-         {showForm ? (
-  <FileRegistrationForm
-    departments={departments}
-    onRegister={registerFile}
-    onCancel={() => {
-      setShowForm(false);
-      setActiveMenu("Dashboard");
-      setNotice("");
-    }}
-  />
+        
+{activeMenu !== "Active Employees" &&
+  activeMenu !== "Inactive Employees" && (
+    <>
+      {showForm ? (
+        <FileRegistrationForm
+          departments={departments}
+          onRegister={registerFile}
+          onCancel={() => {
+            setShowForm(false);
+            setActiveMenu("Dashboard");
+            setNotice("");
+          }}
+        />
+      ) : (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-xl font-bold text-[#092c45]">
+                {activeMenu === "Dashboard"
+                  ? "Recent Files"
+                  : activeMenu}
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Search and manage your office file records.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => handleNavigate("Register File")}
+              className="rounded-lg bg-[#092c45] px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#124766]"
+            >
+              + Register New File
+            </button>
+          </div>
+
+          {selectedFile ? (
+            <FileDetails
+              file={selectedFile}
+              onBack={() => setSelectedFile(null)}
+            />
           ) : (
-            <>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-xl font-bold text-[#092c45]">
-                    {activeMenu === "Dashboard"
-                      ? "Recent Files"
-                      : activeMenu}
-                  </h3>
-
-                  <p className="mt-1 text-sm text-slate-500">
-                    Search and manage your office file records.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleNavigate("Register File")}
-                  className="rounded-lg bg-[#092c45] px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#124766]"
-                >
-                  + Register New File
-                </button>
-              </div>
-
-{selectedFile ? (
-  <FileDetails
-    file={selectedFile}
-    onBack={() => setSelectedFile(null)}
-  />
-) : (
-  <FileTable
-    files={files}
-    onViewFile={setSelectedFile}
-  />
-)}
-
-            </>
+            <FileTable
+              files={files}
+              onViewFile={setSelectedFile}
+            />
           )}
+        </>
+      )}
 
-          <p className="text-xs text-slate-400">
-            Frontend demo · Records are temporary and will reset on refresh.
-          </p>
+      <p className="text-xs text-slate-400">
+        Frontend demo · Records are temporary and will reset on refresh.
+      </p>
+    </>
+  )}
+
         </div>
       </section>
     </main>
