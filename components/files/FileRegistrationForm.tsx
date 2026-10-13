@@ -61,16 +61,16 @@ export default function FileRegistrationForm({
     setError("");
 
     onRegister({
-      fileType,
-      reference: reference.trim(),
-      date,
-      pages: Number(pages),
-      department,
-      assignedOfficer,
-      title: title.trim(),
-      remarks: remarks.trim(),
-      attachment,
-    });
+  fileType,
+  reference: reference.trim(),
+  date,
+  pages: Number(pages),
+  department,
+  assignedOfficer,
+  title: title.trim(),
+  remarks: remarks.trim(),
+  attachment,
+});
   }
 
   function handleClear() {

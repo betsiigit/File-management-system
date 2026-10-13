@@ -3,6 +3,8 @@
 
 import { useMemo, useState } from "react";
 
+
+
 export type OfficeFile = {
   id: number;
   reference: string;
@@ -10,7 +12,14 @@ export type OfficeFile = {
   department: string;
   date: string;
   status: "Pending" | "Approved" | "Archived";
+  fileType?: "Incoming" | "Outgoing";
+  pages?: number;
+  assignedOfficer?: string;
+  remarks?: string;
+  attachmentName?: string;
 };
+
+
 
 type FileTableProps = {
    files: OfficeFile[];

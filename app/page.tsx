@@ -15,6 +15,7 @@ import FileRegistrationForm, {
   type RegisteredFileData,
 } from "@/components/files/FileRegistrationForm";
 
+
 type OfficeFile = {
   id: number;
   reference: string;
@@ -22,6 +23,11 @@ type OfficeFile = {
   department: string;
   date: string;
   status: "Pending" | "Approved" | "Archived";
+  fileType?: "Incoming" | "Outgoing";
+  pages?: number;
+  assignedOfficer?: string;
+  remarks?: string;
+  attachmentName?: string;
 };
 
 const initialFiles: OfficeFile[] = [
@@ -169,14 +175,21 @@ function registerFile(data: RegisteredFileData) {
       ? Math.max(...files.map((file) => file.id)) + 1
       : 1;
 
-  const newFile: OfficeFile = {
-    id: nextId,
-    reference: data.reference,
-    title: data.title,
-    department: data.department,
-    date: data.date,
-    status: "Pending",
-  };
+
+const newFile: OfficeFile = {
+  id: nextId,
+  reference: data.reference,
+  title: data.title,
+  department: data.department,
+  date: data.date,
+  status: "Pending",
+  fileType: data.fileType,
+  pages: data.pages,
+  assignedOfficer: data.assignedOfficer,
+  remarks: data.remarks,
+  attachmentName: data.attachment?.name,
+};
+
 
   setFiles((currentFiles) => [newFile, ...currentFiles]);
   setShowForm(false);
