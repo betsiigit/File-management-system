@@ -16,6 +16,8 @@ import FileRegistrationForm, {
 } from "@/components/files/FileRegistrationForm";
 import FileTransfers from "@/components/files/FileTransfers";
 import VariousJobs from "@/components/files/VariousJobs";
+import UserManagement from "@/components/users/UserManagement";
+import About from "@/components/About";
 
 
 type OfficeFile = {
@@ -110,8 +112,16 @@ export default function Home() {
   const [department, setDepartment] = useState("Administration");
   const [notice, setNotice] = useState("");
   const [selectedFile, setSelectedFile] = useState<OfficeFile | null>(null);
-  const [showEmployeeForm, setShowEmployeeForm] = useState(false);
+ 
+const [showEmployeeForm, setShowEmployeeForm] = useState(false);
+const [employeeFormStatus, setEmployeeFormStatus] =
+  useState<"Active" | "Inactive">("Active");
 const [employeeNotice, setEmployeeNotice] = useState("");
+const [activeEmployeeSearch, setActiveEmployeeSearch] = useState("");
+const [inactiveEmployeeSearch, setInactiveEmployeeSearch] = useState("");
+const [showBulkEmployeeForm, setShowBulkEmployeeForm] = useState(false);
+const [bulkEmployeeText, setBulkEmployeeText] = useState("");
+
 
   const pending = files.filter(
     (file) => file.status === "Pending"
@@ -161,6 +171,112 @@ function handleSaveEmployee(
 }
 
  
+function exportEmployees(status: "Active" | "Inactive") {
+  const rows = employees.filter(
+    (employee) => employee.status === status
+  );
+
+  const escapeCsv = (value: string) =>
+    `"${value.replace(/"/g, '""')}"`;
+
+  const csv = [
+    ["Employee ID", "Full Name", "Department", "Position", "Status"],
+    ...rows.map((employee) => [
+      employee.employeeId,
+      employee.fullName,
+      employee.department,
+      employee.position,
+      employee.status,
+    ]),
+  ]
+    .map((row) => row.map(escapeCsv).join(","))
+    .join("\r\n");
+
+  const blob = new Blob(["\uFEFF" + csv], {
+    type: "text/csv;charset=utf-8;",
+  });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${status.toLowerCase()}-employees.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function handleBulkAddEmployees() {
+  const lines = bulkEmployeeText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) {
+    setEmployeeNotice("Please enter employee records first.");
+    return;
+  }
+
+  const parsed = lines.map((line) => {
+    const [employeeId, fullName, department, position] =
+      line.split(",").map((value) => value.trim());
+
+    return {
+      employeeId,
+      fullName,
+      department,
+      position,
+      status: "Active" as const,
+    };
+  });
+
+  if (
+    parsed.some(
+      (employee) =>
+        !employee.employeeId ||
+        !employee.fullName ||
+        !employee.department ||
+        !employee.position
+    )
+  ) {
+    setEmployeeNotice(
+      "Each line must contain Employee ID, Full Name, Department, and Position."
+    );
+    return;
+  }
+
+  const existingIds = new Set(
+    employees.map((employee) => employee.employeeId.toLowerCase())
+  );
+  const batchIds = new Set<string>();
+
+  for (const employee of parsed) {
+    const id = employee.employeeId.toLowerCase();
+
+    if (existingIds.has(id) || batchIds.has(id)) {
+      setEmployeeNotice(
+        `Duplicate employee ID found: ${employee.employeeId}`
+      );
+      return;
+    }
+
+    batchIds.add(id);
+  }
+
+  const firstId =
+    employees.length > 0
+      ? Math.max(...employees.map((employee) => employee.id)) + 1
+      : 1;
+
+  const newEmployees: Employee[] = parsed.map((employee, index) => ({
+    ...employee,
+    id: firstId + index,
+  }));
+
+  setEmployees((current) => [...current, ...newEmployees]);
+  setBulkEmployeeText("");
+  setShowBulkEmployeeForm(false);
+  setEmployeeNotice(`${newEmployees.length} employees added successfully.`);
+}
+
 function registerFile(data: RegisteredFileData) {
   const duplicateReference = files.some(
     (file) =>
@@ -261,34 +377,73 @@ const newFile: OfficeFile = {
               </div>
             </>
  )}
-          
-         
+  
 {activeMenu === "Active Employees" && (
   <div className="space-y-6">
-   
-<div className="flex flex-wrap items-center justify-between gap-4">
-  <div>
-    <h3 className="text-2xl font-bold text-[#092c45]">
-      Active Employees
-    </h3>
-    <p className="mt-1 text-sm text-slate-500">
-      Employees currently active in the office.
-    </p>
-  </div>
+    {/* Heading and action buttons */}
+    <div className="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <h3 className="text-2xl font-bold text-[#092c45]">
+          Active Employees
+        </h3>
+        <p className="mt-1 text-sm text-slate-500">
+          Employees currently active in the office.
+        </p>
+      </div>
 
-  <button
-    type="button"
-    onClick={() => {
-      setShowEmployeeForm(true);
-      setEmployeeNotice("");
-    }}
-    className="rounded-lg bg-[#092c45] px-5 py-3 text-sm font-semibold text-white hover:bg-[#123f5e]"
-  >
-    + Add Employee
-  </button>
-</div>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => exportEmployees("Active")}
+          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold hover:bg-slate-50"
+        >
+          Export CSV
+        </button>
 
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold hover:bg-slate-50"
+        >
+          Print
+        </button>
 
+        <button
+          type="button"
+          onClick={() => {
+            setShowEmployeeForm(true);
+            setEmployeeNotice("");
+          }}
+          className="rounded-lg bg-[#092c45] px-4 py-2 text-sm font-semibold text-white hover:bg-[#123f5e]"
+        >
+          + Add Employee
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setShowBulkEmployeeForm(true);
+            setEmployeeNotice("");
+          }}
+          className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-semibold text-[#092c45] hover:bg-amber-300"
+        >
+          Bulk Add
+        </button>
+      </div>
+    </div>
+
+    {/* Search */}
+    <input
+      type="search"
+      value={activeEmployeeSearch}
+      onChange={(event) =>
+        setActiveEmployeeSearch(event.target.value)
+      }
+      placeholder="Search active employees..."
+      className="w-full max-w-md rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
+    />
+
+    {/* Employee statistics */}
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       <StatCard
         label="Total Employees"
@@ -296,12 +451,14 @@ const newFile: OfficeFile = {
         icon="♙"
         description="All employee records"
       />
+
       <StatCard
         label="Active Employees"
         value={employees.filter((e) => e.status === "Active").length}
         icon="✓"
         description="Currently active"
       />
+
       <StatCard
         label="Inactive Employees"
         value={employees.filter((e) => e.status === "Inactive").length}
@@ -310,43 +467,163 @@ const newFile: OfficeFile = {
       />
     </div>
 
-    
-{showEmployeeForm ? (
-  <EmployeeForm
-    onSave={handleSaveEmployee}
-    onCancel={() => setShowEmployeeForm(false)}
-  />
-) : (
-  <EmployeeTable employees={employees} status="Active" />
-)}
+    {/* Add employee or show table */}
+    {showBulkEmployeeForm ? (
+      <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
+        <h4 className="text-lg font-bold text-[#092c45]">
+          Bulk Add Active Employees
+        </h4>
 
+        <p className="text-sm text-slate-500">
+          Enter one employee per line: Employee ID, Full Name,
+          Department, Position.
+        </p>
+
+        <textarea
+          value={bulkEmployeeText}
+          onChange={(event) =>
+            setBulkEmployeeText(event.target.value)
+          }
+          rows={6}
+          placeholder="EMP-004, Hana Tesfaye, Finance, Accountant"
+          className="w-full rounded-lg border border-slate-300 p-3 text-sm"
+        />
+
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={handleBulkAddEmployees}
+            className="rounded-lg bg-[#092c45] px-4 py-2 text-sm font-semibold text-white"
+          >
+            Add Employees
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setShowBulkEmployeeForm(false);
+              setBulkEmployeeText("");
+            }}
+            className="rounded-lg border border-slate-300 px-4 py-2 text-sm"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    ) : showEmployeeForm ? (
+      <EmployeeForm
+        onSave={handleSaveEmployee}
+        onCancel={() => setShowEmployeeForm(false)}
+      />
+    ) : (
+      <EmployeeTable
+        employees={employees.filter(
+          (employee) =>
+            employee.status === "Active" &&
+            [
+              employee.employeeId,
+              employee.fullName,
+              employee.department,
+              employee.position,
+            ].some((value) =>
+              value
+                .toLowerCase()
+                .includes(activeEmployeeSearch.toLowerCase())
+            )
+        )}
+        status="Active"
+      />
+    )}
   </div>
 )}
 
 
-         
 {activeMenu === "Inactive Employees" && (
   <div className="space-y-6">
-    <div>
-      <h3 className="text-2xl font-bold text-[#092c45]">
-        Inactive Employees
-      </h3>
-      <p className="mt-1 text-sm text-slate-500">
-        Employees who are currently inactive.
-      </p>
+    {/* Page heading and action buttons */}
+    <div className="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <h3 className="text-2xl font-bold text-[#092c45]">
+          Inactive Employees
+        </h3>
+        <p className="mt-1 text-sm text-slate-500">
+          Employees who are currently inactive.
+        </p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => exportEmployees("Inactive")}
+          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold hover:bg-slate-50"
+        >
+          Export CSV
+        </button>
+
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold hover:bg-slate-50"
+        >
+          Print
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setShowEmployeeForm(true);
+            setEmployeeNotice("");
+          }}
+          className="rounded-lg bg-[#092c45] px-4 py-2 text-sm font-semibold text-white hover:bg-[#123f5e]"
+        >
+          + Add Inactive Employee
+        </button>
+      </div>
     </div>
 
-    <EmployeeTable employees={employees} status="Inactive" />
+    {/* Notification */}
+    {employeeNotice && (
+      <p
+        role="status"
+        className="rounded-lg bg-slate-100 p-3 text-sm text-[#092c45]"
+      >
+        {employeeNotice}
+      </p>
+    )}
+
+    {/* Employee registration form or inactive employee table */}
+    {showEmployeeForm ? (
+      <EmployeeForm
+        onSave={(employee) =>
+          handleSaveEmployee({
+            ...employee,
+            status: "Inactive",
+          })
+        }
+        onCancel={() => setShowEmployeeForm(false)}
+      />
+    ) : (
+      <EmployeeTable
+        employees={employees}
+        status="Inactive"
+      />
+    )}
   </div>
 )}
+
 {activeMenu === "File Transfers" && <FileTransfers />}
 
 {activeMenu === "Various Jobs" && <VariousJobs />}
+{activeMenu === "User Management" && <UserManagement />}
+
+{activeMenu === "About" && <About />}
         
 {activeMenu !== "Active Employees" &&
   activeMenu !== "Inactive Employees" &&
   activeMenu !== "File Transfers" &&
-  activeMenu !== "Various Jobs" && (
+  activeMenu !== "Various Jobs" &&
+  activeMenu !== "User Management" &&
+activeMenu !== "About" && (
     <>
       {showForm ? (
         <FileRegistrationForm
