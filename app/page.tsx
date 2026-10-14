@@ -14,6 +14,8 @@ import EmployeeForm from "@/components/employees/EmployeeForm";
 import FileRegistrationForm, {
   type RegisteredFileData,
 } from "@/components/files/FileRegistrationForm";
+import FileTransfers from "@/components/files/FileTransfers";
+import VariousJobs from "@/components/files/VariousJobs";
 
 
 type OfficeFile = {
@@ -198,7 +200,7 @@ const newFile: OfficeFile = {
 }
 
   return (
-    <main className="min-h-screen bg-slate-100 text-slate-800 md:flex">
+    <main className="min-h-screen bg-slate-100 text-slate-800  md:ml-64">
       <Sidebar
         activeMenu={activeMenu}
         onNavigate={handleNavigate}
@@ -337,10 +339,14 @@ const newFile: OfficeFile = {
     <EmployeeTable employees={employees} status="Inactive" />
   </div>
 )}
+{activeMenu === "File Transfers" && <FileTransfers />}
 
+{activeMenu === "Various Jobs" && <VariousJobs />}
         
 {activeMenu !== "Active Employees" &&
-  activeMenu !== "Inactive Employees" && (
+  activeMenu !== "Inactive Employees" &&
+  activeMenu !== "File Transfers" &&
+  activeMenu !== "Various Jobs" && (
     <>
       {showForm ? (
         <FileRegistrationForm
