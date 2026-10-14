@@ -102,8 +102,7 @@ export default function FileTable({
                 <td className="whitespace-nowrap px-5 py-4 text-slate-600">
                   {file.date}
                 </td>
-                <td className="px-5 py-4">
-                  
+               ```tsx
 <td className="px-5 py-4">
   <button
     type="button"
@@ -112,20 +111,20 @@ export default function FileTable({
   >
     View Details
   </button>
+
+  <span
+    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+      file.status === "Approved"
+        ? "bg-emerald-100 text-emerald-700"
+        : file.status === "Pending"
+          ? "bg-amber-100 text-amber-800"
+          : "bg-slate-200 text-slate-600"
+    }`}
+  >
+    {file.status}
+  </span>
 </td>
 
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                      file.status === "Approved"
-                        ? "bg-emerald-100 text-emerald-700"
-                        : file.status === "Pending"
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-slate-200 text-slate-600"
-                    }`}
-                  >
-                    {file.status}
-                  </span>
-                </td>
               </tr>
             ))}
 

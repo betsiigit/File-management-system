@@ -18,6 +18,7 @@ import FileTransfers from "@/components/files/FileTransfers";
 import VariousJobs from "@/components/files/VariousJobs";
 import UserManagement from "@/components/users/UserManagement";
 import About from "@/components/About";
+import Reports from "@/components/reports/Reports";
 
 
 type OfficeFile = {
@@ -617,14 +618,19 @@ const newFile: OfficeFile = {
 {activeMenu === "User Management" && <UserManagement />}
 
 {activeMenu === "About" && <About />}
-        
+{activeMenu === "Reports" ? (
+  <Reports employees={employees} files={files} />
+) : null}
+
 {activeMenu !== "Active Employees" &&
   activeMenu !== "Inactive Employees" &&
   activeMenu !== "File Transfers" &&
   activeMenu !== "Various Jobs" &&
   activeMenu !== "User Management" &&
-activeMenu !== "About" && (
+activeMenu !== "About" &&
+  activeMenu !== "Reports" && (
     <>
+    
       {showForm ? (
         <FileRegistrationForm
           departments={departments}
