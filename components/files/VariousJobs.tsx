@@ -56,7 +56,9 @@ export default function VariousJobs() {
     const amount = Number(quantity);
 
     if (!date || !quantity || !Number.isInteger(amount) || amount < 1) {
-      setNotice("Please enter a date and a whole-number quantity greater than zero.");
+      setNotice(
+        "Please enter a date and a whole-number quantity greater than zero.",
+      );
       return;
     }
 
@@ -95,30 +97,35 @@ export default function VariousJobs() {
     }
   }
 
+  const inputClass =
+    "w-full rounded-lg border border-[#D6E2E8] bg-white px-4 py-3 text-sm text-[#292D32] outline-none transition-colors duration-200 placeholder:text-[#9298A1] focus:border-[#0A506E] focus:ring-2 focus:ring-[#0A506E]/10";
+
+  const labelClass =
+    "mb-2 block text-sm font-semibold text-[#454B54]";
+
   return (
     <div className="various-jobs-page space-y-6">
       {/* Page heading */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-2xl text-[#092c45]">
-              ▤
-            </span>
-            <div>
-              <h2 className="text-2xl font-bold text-[#092c45]">
-                Various Jobs
-              </h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Record, track, and manage daily office job entries.
-              </p>
-            </div>
+        <div className="flex items-center gap-3">
+          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#E7F1F5] text-2xl text-[#0A506E]">
+            ▤
+          </span>
+
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-[#292D32]">
+              Various Jobs
+            </h2>
+            <p className="mt-1 text-sm text-[#737B86]">
+              Record, track, and manage daily office job entries.
+            </p>
           </div>
         </div>
 
         <button
           type="button"
           onClick={() => window.print()}
-          className="rounded-xl border-2 border-[#092c45] px-5 py-2.5 font-semibold text-[#092c45] transition hover:bg-slate-50 print:hidden"
+          className="rounded-lg border border-[#D6E2E8] bg-white px-5 py-2.5 text-sm font-semibold text-[#0A506E] transition-colors duration-200 hover:border-[#0A506E] hover:bg-[#E7F1F5] active:bg-[#D9EAF0] print:hidden"
         >
           ▣ Print
         </button>
@@ -126,38 +133,38 @@ export default function VariousJobs() {
 
       {/* Summary cards */}
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">
+        <div className="rounded-xl border border-[#ECEFF2] bg-white p-5 shadow-sm transition-all duration-200 hover:border-[#D6E2E8] hover:shadow-md">
+          <p className="text-sm font-medium text-[#737B86]">
             Total Job Entries
           </p>
-          <p className="mt-2 text-3xl font-bold text-[#092c45]">
+          <p className="mt-2 text-3xl font-bold tracking-tight text-[#292D32]">
             {jobs.length}
           </p>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-[#9298A1]">
             All recorded jobs
           </p>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">
+        <div className="rounded-xl border border-[#ECEFF2] bg-white p-5 shadow-sm transition-all duration-200 hover:border-[#D6E2E8] hover:shadow-md">
+          <p className="text-sm font-medium text-[#737B86]">
             Total Quantity
           </p>
-          <p className="mt-2 text-3xl font-bold text-emerald-700">
+          <p className="mt-2 text-3xl font-bold tracking-tight text-[#0A506E]">
             {total.toLocaleString()}
           </p>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-[#9298A1]">
             Combined quantity of all job entries
           </p>
         </div>
       </div>
 
       {/* Entry form */}
-      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 px-6 py-5">
-          <h3 className="text-lg font-bold text-[#092c45]">
+      <section className="overflow-hidden rounded-xl border border-[#ECEFF2] bg-white shadow-sm">
+        <div className="border-b border-[#ECEFF2] px-6 py-5">
+          <h3 className="text-lg font-bold text-[#292D32]">
             Log Job Entries
           </h3>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-[#737B86]">
             Enter the job details below to add a record.
           </p>
         </div>
@@ -165,10 +172,7 @@ export default function VariousJobs() {
         <form onSubmit={handleAddJob} className="space-y-5 p-6">
           <div className="grid gap-5 md:grid-cols-2">
             <div>
-              <label
-                htmlFor="job-date"
-                className="mb-2 block text-sm font-semibold text-slate-700"
-              >
+              <label htmlFor="job-date" className={labelClass}>
                 Date (Eth) <span className="text-red-600">*</span>
               </label>
               <input
@@ -177,15 +181,12 @@ export default function VariousJobs() {
                 required
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none transition focus:border-[#092c45] focus:ring-2 focus:ring-blue-100"
+                className={inputClass}
               />
             </div>
 
             <div>
-              <label
-                htmlFor="job-quantity"
-                className="mb-2 block text-sm font-semibold text-slate-700"
-              >
+              <label htmlFor="job-quantity" className={labelClass}>
                 Quantity <span className="text-red-600">*</span>
               </label>
               <input
@@ -197,15 +198,12 @@ export default function VariousJobs() {
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
                 placeholder="Enter quantity"
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none transition focus:border-[#092c45] focus:ring-2 focus:ring-blue-100"
+                className={inputClass}
               />
             </div>
 
             <div className="md:col-span-2">
-              <label
-                htmlFor="job-remarks"
-                className="mb-2 block text-sm font-semibold text-slate-700"
-              >
+              <label htmlFor="job-remarks" className={labelClass}>
                 Remarks
               </label>
               <textarea
@@ -214,7 +212,7 @@ export default function VariousJobs() {
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
                 placeholder="Enter job description or additional remarks..."
-                className="w-full resize-y rounded-xl border border-slate-200 px-4 py-3 outline-none transition focus:border-[#092c45] focus:ring-2 focus:ring-blue-100"
+                className={`${inputClass} resize-y`}
               />
             </div>
           </div>
@@ -222,7 +220,14 @@ export default function VariousJobs() {
           {notice && (
             <p
               role="status"
-              className="rounded-lg bg-blue-50 p-3 text-sm text-blue-800"
+              aria-live="polite"
+              className={`rounded-lg border p-3 text-sm ${
+                notice.includes("successfully") ||
+                notice.includes("deleted.") ||
+                notice.includes("cleared.")
+                  ? "border-[#D6E2E8] bg-[#E7F1F5] text-[#0A506E]"
+                  : "border-amber-200 bg-amber-50 text-amber-800"
+              }`}
             >
               {notice}
             </p>
@@ -231,7 +236,7 @@ export default function VariousJobs() {
           <div className="flex flex-wrap gap-3 print:hidden">
             <button
               type="submit"
-              className="rounded-xl bg-[#092c45] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#124766]"
+              className="rounded-lg bg-[#0A506E] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-[#176A87] active:bg-[#135B74] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A506E]/30"
             >
               + Add Job
             </button>
@@ -239,7 +244,7 @@ export default function VariousJobs() {
             <button
               type="button"
               onClick={resetForm}
-              className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              className="rounded-lg border border-[#D6E2E8] bg-white px-5 py-3 text-sm font-semibold text-[#454B54] transition-colors duration-200 hover:bg-[#F4F5F9] active:bg-[#ECEFF2]"
             >
               Clear
             </button>
@@ -248,13 +253,13 @@ export default function VariousJobs() {
       </section>
 
       {/* Job history */}
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 p-5 md:p-6">
+      <section className="overflow-hidden rounded-xl border border-[#ECEFF2] bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#ECEFF2] p-5 md:p-6">
           <div>
-            <h3 className="text-lg font-bold text-[#092c45]">
+            <h3 className="text-lg font-bold text-[#292D32]">
               Job History
             </h3>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-[#737B86]">
               View and manage recorded job entries.
             </p>
           </div>
@@ -262,15 +267,15 @@ export default function VariousJobs() {
           <button
             type="button"
             onClick={handleClearAll}
-            className="rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50 print:hidden"
+            className="rounded-lg border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 transition-colors duration-200 hover:bg-red-50 print:hidden"
           >
             Clear All
           </button>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 p-5">
-          <p className="text-sm text-slate-600">
-            Total: <strong className="text-[#092c45]">{total}</strong>
+          <p className="text-sm text-[#737B86]">
+            Total: <strong className="text-[#292D32]">{total}</strong>
           </p>
 
           <input
@@ -279,13 +284,13 @@ export default function VariousJobs() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search date, remarks, or employee..."
             aria-label="Search job entries"
-            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-[#092c45] sm:max-w-sm print:hidden"
+            className={`${inputClass} sm:max-w-sm print:hidden`}
           />
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[750px] text-left text-sm">
-            <thead className="bg-slate-50 text-[#092c45]">
+            <thead className="bg-[#F8FAFB] text-xs uppercase tracking-wide text-[#737B86]">
               <tr>
                 {[
                   "#",
@@ -297,7 +302,7 @@ export default function VariousJobs() {
                 ].map((heading) => (
                   <th
                     key={heading}
-                    className="border-y border-slate-200 px-5 py-4 font-bold"
+                    className="border-y border-[#ECEFF2] px-5 py-4 font-semibold"
                   >
                     {heading}
                   </th>
@@ -305,22 +310,22 @@ export default function VariousJobs() {
               </tr>
             </thead>
 
-            <tbody>
+            <tbody className="divide-y divide-[#ECEFF2]">
               {visibleJobs.length === 0 ? (
                 <tr>
                   <td
                     colSpan={6}
-                    className="px-5 py-12 text-center text-slate-500"
+                    className="px-5 py-12 text-center text-[#737B86]"
                   >
-                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-xl">
+                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#F4F5F9] text-xl text-[#0A506E]">
                       ▤
                     </div>
-                    <p className="font-semibold text-slate-600">
+                    <p className="font-semibold text-[#454B54]">
                       {jobs.length === 0
                         ? "No job entries yet."
                         : "No matching job entries."}
                     </p>
-                    <p className="mt-1 text-xs text-slate-400">
+                    <p className="mt-1 text-xs text-[#9298A1]">
                       {jobs.length === 0
                         ? "Add a job using the form above."
                         : "Try a different search term."}
@@ -331,28 +336,30 @@ export default function VariousJobs() {
                 visibleJobs.map((job, index) => (
                   <tr
                     key={job.id}
-                    className="border-b border-slate-100 transition last:border-0 hover:bg-slate-50"
+                    className="transition-colors duration-150 hover:bg-[#F8FAFB]"
                   >
-                    <td className="px-5 py-4 text-slate-500">
+                    <td className="px-5 py-4 text-[#9298A1]">
                       {index + 1}
                     </td>
-                    <td className="whitespace-nowrap px-5 py-4">
+                    <td className="whitespace-nowrap px-5 py-4 text-[#454B54]">
                       {job.date}
                     </td>
                     <td className="px-5 py-4">
-                      <span className="rounded-lg bg-blue-50 px-3 py-1.5 font-semibold text-[#092c45]">
+                      <span className="inline-flex rounded-lg bg-[#E7F1F5] px-3 py-1.5 font-semibold text-[#0A506E]">
                         {job.quantity}
                       </span>
                     </td>
-                    <td className="max-w-xs whitespace-pre-wrap px-5 py-4 text-slate-600">
+                    <td className="max-w-xs whitespace-pre-wrap px-5 py-4 text-[#737B86]">
                       {job.remarks || "—"}
                     </td>
-                    <td className="px-5 py-4">{job.loggedBy}</td>
+                    <td className="px-5 py-4 text-[#454B54]">
+                      {job.loggedBy}
+                    </td>
                     <td className="px-5 py-4 print:hidden">
                       <button
                         type="button"
                         onClick={() => handleDelete(job.id)}
-                        className="rounded-lg px-3 py-2 font-semibold text-red-700 transition hover:bg-red-50"
+                        className="rounded-lg px-3 py-2 font-semibold text-red-700 transition-colors duration-200 hover:bg-red-50"
                       >
                         Delete
                       </button>
@@ -364,12 +371,12 @@ export default function VariousJobs() {
           </table>
         </div>
 
-        <div className="border-t border-slate-100 bg-slate-50 px-5 py-4 text-sm text-slate-500">
+        <div className="border-t border-[#ECEFF2] bg-[#F8FAFB] px-5 py-4 text-sm text-[#737B86]">
           Showing {visibleJobs.length} of {jobs.length} job entries
         </div>
       </section>
 
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-[#9298A1]">
         Frontend demo · Job entries reset when the page is refreshed.
       </p>
     </div>

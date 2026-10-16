@@ -32,7 +32,10 @@ export default function FileDetails({
       label: "Assigned Officer",
       value: file.assignedOfficer || "Not assigned",
     },
-    { label: "Remarks / Description", value: file.remarks || "No remarks" },
+    {
+      label: "Remarks / Description",
+      value: file.remarks || "No remarks",
+    },
     {
       label: "Attachment",
       value: file.attachmentName || "No attachment recorded",
@@ -45,7 +48,7 @@ export default function FileDetails({
         <button
           type="button"
           onClick={onBack}
-          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-[#092c45] hover:bg-slate-50"
+          className="rounded-lg border border-[#D6E2E8] bg-white px-4 py-2 text-sm font-semibold text-[#0A506E] transition-colors duration-200 hover:border-[#0A506E] hover:bg-[#E7F1F5] active:bg-[#D9EAF0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A506E]/30"
         >
           ← Back to Files
         </button>
@@ -54,35 +57,35 @@ export default function FileDetails({
           <button
             type="button"
             onClick={handlePrint}
-            className="rounded-lg bg-[#092c45] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#124766]"
+            className="rounded-lg bg-[#0A506E] px-5 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#176A87] active:bg-[#135B74] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A506E]/30"
           >
             Print Details
           </button>
         )}
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm print:border-0 print:shadow-none">
-        <div className="bg-[#092c45] p-6 text-white print:bg-white print:text-black">
-          <p className="text-sm text-slate-300 print:text-slate-600">
+      <div className="overflow-hidden rounded-xl border border-[#ECEFF2] bg-white shadow-sm print:border-0 print:shadow-none">
+        <div className="bg-[#0A506E] p-6 text-white print:bg-white print:text-black">
+          <p className="text-sm text-white/75 print:text-[#737B86]">
             Office File Reference
           </p>
 
-          <h2 className="mt-1 text-2xl font-bold">
+          <h2 className="mt-1 break-words text-2xl font-bold tracking-tight">
             {file.reference}
           </h2>
 
-          <p className="mt-2 text-sm text-slate-300 print:text-slate-600">
+          <p className="mt-2 text-sm text-white/75 print:text-[#737B86]">
             Office File Details
           </p>
 
           <div className="mt-4">
-            <span className="inline-block rounded-full bg-white/10 px-3 py-1 text-sm font-semibold print:border print:border-slate-400 print:bg-white print:text-black">
+            <span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-sm font-semibold print:border print:border-[#D6E2E8] print:bg-white print:text-black">
               Status: {file.status}
             </span>
           </div>
         </div>
 
-        <div className="grid gap-6 p-6 sm:grid-cols-2">
+        <div className="grid gap-x-8 gap-y-6 p-6 sm:grid-cols-2">
           {detailRows.map((item) => (
             <div
               key={item.label}
@@ -92,17 +95,18 @@ export default function FileDetails({
                   : ""
               }
             >
-              <p className="text-sm text-slate-500 print:text-slate-700">
+              <p className="text-sm font-medium text-[#737B86] print:text-[#737B86]">
                 {item.label}
               </p>
-              <p className="mt-1 whitespace-pre-wrap break-words font-semibold text-[#092c45] print:text-black">
+
+              <p className="mt-1 whitespace-pre-wrap break-words text-sm font-semibold leading-6 text-[#292D32] print:text-black">
                 {item.value}
               </p>
             </div>
           ))}
         </div>
 
-        <div className="border-t border-slate-200 px-6 py-4 text-xs text-slate-500 print:text-slate-700">
+        <div className="border-t border-[#ECEFF2] px-6 py-4 text-xs text-[#737B86] print:text-[#737B86]">
           Office File Management System
         </div>
       </div>

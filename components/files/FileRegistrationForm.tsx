@@ -40,7 +40,9 @@ export default function FileRegistrationForm({
   const [error, setError] = useState("");
 
   const inputClass =
-    "mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
+    "mt-2 w-full rounded-lg border border-[#D6E2E8] bg-white px-3 py-3 text-sm text-[#292D32] outline-none transition-colors duration-200 placeholder:text-[#9298A1] focus:border-[#0A506E] focus:ring-2 focus:ring-[#0A506E]/10";
+
+  const labelClass = "text-sm font-semibold text-[#454B54]";
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -61,16 +63,16 @@ export default function FileRegistrationForm({
     setError("");
 
     onRegister({
-  fileType,
-  reference: reference.trim(),
-  date,
-  pages: Number(pages),
-  department,
-  assignedOfficer,
-  title: title.trim(),
-  remarks: remarks.trim(),
-  attachment,
-});
+      fileType,
+      reference: reference.trim(),
+      date,
+      pages: Number(pages),
+      department,
+      assignedOfficer,
+      title: title.trim(),
+      remarks: remarks.trim(),
+      attachment,
+    });
   }
 
   function handleClear() {
@@ -87,10 +89,12 @@ export default function FileRegistrationForm({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-200 bg-[#092c45] px-6 py-5 text-white">
-        <h2 className="text-xl font-bold">Register File</h2>
-        <p className="mt-1 text-sm text-slate-300">
+    <div className="overflow-hidden rounded-xl border border-[#ECEFF2] bg-white shadow-sm">
+      <div className="border-b border-[#ECEFF2] bg-[#0A506E] px-6 py-5 text-white">
+        <h2 className="text-xl font-bold tracking-tight">
+          Register File
+        </h2>
+        <p className="mt-1 text-sm text-white/75">
           Register and assign an incoming or outgoing office file.
         </p>
       </div>
@@ -98,7 +102,7 @@ export default function FileRegistrationForm({
       <form onSubmit={handleSubmit} className="space-y-6 p-6">
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
-            <label className="text-sm font-semibold text-slate-700">
+            <label className={labelClass}>
               File Type *
             </label>
             <select
@@ -115,7 +119,7 @@ export default function FileRegistrationForm({
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-slate-700">
+            <label className={labelClass}>
               Reference Number *
             </label>
             <input
@@ -128,7 +132,7 @@ export default function FileRegistrationForm({
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-slate-700">
+            <label className={labelClass}>
               Registration Date *
             </label>
             <input
@@ -141,7 +145,7 @@ export default function FileRegistrationForm({
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-slate-700">
+            <label className={labelClass}>
               Number of Pages *
             </label>
             <input
@@ -157,7 +161,7 @@ export default function FileRegistrationForm({
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-slate-700">
+            <label className={labelClass}>
               Department *
             </label>
             <select
@@ -176,7 +180,7 @@ export default function FileRegistrationForm({
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-slate-700">
+            <label className={labelClass}>
               Assigned Officer
             </label>
             <select
@@ -194,11 +198,13 @@ export default function FileRegistrationForm({
           </div>
         </div>
 
-        <div className="space-y-5 border-t border-slate-200 pt-5">
-          <h3 className="font-bold text-[#092c45]">Additional Details</h3>
+        <div className="space-y-5 border-t border-[#ECEFF2] pt-5">
+          <h3 className="font-bold text-[#292D32]">
+            Additional Details
+          </h3>
 
           <div>
-            <label className="text-sm font-semibold text-slate-700">
+            <label className={labelClass}>
               Subject / File Title *
             </label>
             <input
@@ -211,7 +217,7 @@ export default function FileRegistrationForm({
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-slate-700">
+            <label className={labelClass}>
               Remarks and Description
             </label>
             <textarea
@@ -220,15 +226,15 @@ export default function FileRegistrationForm({
               placeholder="Enter additional details..."
               rows={4}
               maxLength={2000}
-              className={inputClass}
+              className={`${inputClass} resize-y`}
             />
-            <p className="mt-1 text-right text-xs text-slate-400">
+            <p className="mt-1 text-right text-xs text-[#9298A1]">
               {remarks.length}/2000 characters
             </p>
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-slate-700">
+            <label className={labelClass}>
               Attach Document (optional)
             </label>
             <input
@@ -237,26 +243,29 @@ export default function FileRegistrationForm({
               onChange={(e) =>
                 setAttachment(e.target.files?.[0] ?? null)
               }
-              className={inputClass}
+              className={`${inputClass} file:mr-3 file:rounded-md file:border-0 file:bg-[#E7F1F5] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[#0A506E] hover:file:bg-[#D9EAF0]`}
             />
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-[#737B86]">
               PDF files only. The attachment is selected locally for now.
             </p>
           </div>
         </div>
 
         {error && (
-          <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+          <p
+            role="alert"
+            className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm font-medium text-red-700"
+          >
             {error}
           </p>
         )}
 
-        <div className="flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-5">
+        <div className="flex flex-wrap justify-end gap-3 border-t border-[#ECEFF2] pt-5">
           {onCancel && (
             <button
               type="button"
               onClick={onCancel}
-              className="rounded-lg border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              className="rounded-lg border border-[#D6E2E8] bg-white px-5 py-3 text-sm font-semibold text-[#454B54] transition-colors duration-200 hover:bg-[#F4F5F9] active:bg-[#ECEFF2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A506E]/30"
             >
               Cancel
             </button>
@@ -265,14 +274,14 @@ export default function FileRegistrationForm({
           <button
             type="button"
             onClick={handleClear}
-            className="rounded-lg border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            className="rounded-lg border border-[#D6E2E8] bg-white px-5 py-3 text-sm font-semibold text-[#0A506E] transition-colors duration-200 hover:border-[#0A506E] hover:bg-[#E7F1F5] active:bg-[#D9EAF0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A506E]/30"
           >
             Clear
           </button>
 
           <button
             type="submit"
-            className="rounded-lg bg-[#092c45] px-5 py-3 text-sm font-semibold text-white hover:bg-[#123f5e]"
+            className="rounded-lg bg-[#0A506E] px-5 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#176A87] active:bg-[#135B74] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A506E]/30"
           >
             Register File
           </button>

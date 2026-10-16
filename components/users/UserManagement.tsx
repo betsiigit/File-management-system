@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 
 type Role = "hr_manager" | "admin";
 
@@ -68,7 +68,7 @@ export default function UserManagement() {
   });
   const [notice, setNotice] = useState("");
 
-  function createUser(event: React.FormEvent<HTMLFormElement>) {
+  function createUser(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (
@@ -125,71 +125,107 @@ export default function UserManagement() {
     setNotice("User removed from this demo.");
   }
 
+  const inputClass =
+    "w-full rounded-lg border border-[#D6E2E8] bg-white px-3 py-3 text-sm text-[#292D32] outline-none transition-colors duration-200 placeholder:text-[#9298A1] focus:border-[#0A506E] focus:ring-2 focus:ring-[#0A506E]/10";
+
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-2xl font-bold text-[#092c45]">
+        <h3 className="text-2xl font-bold tracking-tight text-[#292D32]">
           User Management
         </h3>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-[#737B86]">
           Create users and configure their system permissions.
         </p>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 p-5">
-          <h4 className="font-bold text-[#092c45]">
+      {/* Create user form */}
+      <div className="overflow-hidden rounded-xl border border-[#ECEFF2] bg-white shadow-sm">
+        <div className="border-b border-[#ECEFF2] p-5">
+          <h4 className="font-bold text-[#292D32]">
             Create New User
           </h4>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-[#737B86]">
             Complete the fields and select the permissions for this user.
           </p>
         </div>
 
         <form onSubmit={createUser} className="space-y-5 p-5">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <input
-              required
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Username"
-              className="rounded-lg border border-slate-300 px-3 py-3 text-sm"
-            />
-            <input
-              required
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Full Name"
-              className="rounded-lg border border-slate-300 px-3 py-3 text-sm"
-            />
-            <input
-              required
-              type="password"
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password (min. 8 characters)"
-              className="rounded-lg border border-slate-300 px-3 py-3 text-sm"
-            />
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as Role)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm"
-            >
-              <option value="hr_manager">HR Manager</option>
-              <option value="admin">Admin</option>
-            </select>
+            <div>
+              <label htmlFor="new-username" className="mb-2 block text-sm font-medium text-[#454B54]">
+                Username *
+              </label>
+              <input
+                id="new-username"
+                required
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter username"
+                className={inputClass}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="new-full-name" className="mb-2 block text-sm font-medium text-[#454B54]">
+                Full Name *
+              </label>
+              <input
+                id="new-full-name"
+                required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Enter full name"
+                className={inputClass}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="new-password" className="mb-2 block text-sm font-medium text-[#454B54]">
+                Password *
+              </label>
+              <input
+                id="new-password"
+                required
+                type="password"
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Minimum 8 characters"
+                className={inputClass}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="new-role" className="mb-2 block text-sm font-medium text-[#454B54]">
+                Role *
+              </label>
+              <select
+                id="new-role"
+                value={role}
+                onChange={(e) => setRole(e.target.value as Role)}
+                className={inputClass}
+              >
+                <option value="hr_manager">HR Manager</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
           </div>
 
           <div>
-            <h5 className="mb-3 font-semibold text-slate-700">
+            <h5 className="mb-3 font-semibold text-[#292D32]">
               Permissions
             </h5>
+
             <div className="grid gap-3 sm:grid-cols-2">
               {permissionOptions.map((permission) => (
                 <label
                   key={permission.key}
-                  className="flex items-start gap-3 rounded-lg border border-slate-200 p-3"
+                  className={`flex items-start gap-3 rounded-lg border p-3 transition-colors duration-150 ${
+                    role === "admin"
+                      ? "border-[#D6E2E8] bg-[#F8FAFB]"
+                      : "border-[#ECEFF2] hover:border-[#D6E2E8] hover:bg-[#F8FAFB]"
+                  }`}
                 >
                   <input
                     type="checkbox"
@@ -203,80 +239,115 @@ export default function UserManagement() {
                         [permission.key]: e.target.checked,
                       }))
                     }
-                    className="mt-1 accent-[#092c45]"
+                    className="mt-1 h-4 w-4 accent-[#0A506E]"
                   />
+
                   <span>
-                    <span className="block text-sm font-semibold">
+                    <span className="block text-sm font-semibold text-[#292D32]">
                       {permission.label}
                     </span>
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-[#737B86]">
                       {permission.description}
                     </span>
                   </span>
                 </label>
               ))}
             </div>
+
             {role === "admin" && (
-              <p className="mt-2 text-xs text-slate-500">
+              <p className="mt-3 rounded-lg bg-[#E7F1F5] p-3 text-xs text-[#0A506E]">
                 Admin users receive all permissions in this demo.
               </p>
             )}
           </div>
 
           {notice && (
-            <p role="status" className="text-sm text-[#092c45]">
+            <p
+              role="status"
+              aria-live="polite"
+              className={`rounded-lg border p-3 text-sm ${
+                notice === "User created successfully."
+                  ? "border-[#D6E2E8] bg-[#E7F1F5] text-[#0A506E]"
+                  : "border-amber-200 bg-amber-50 text-amber-800"
+              }`}
+            >
               {notice}
             </p>
           )}
 
           <button
             type="submit"
-            className="rounded-lg bg-[#092c45] px-5 py-3 text-sm font-semibold text-white hover:bg-[#123f5e]"
+            className="rounded-lg bg-[#0A506E] px-5 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#176A87] active:bg-[#135B74] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A506E]/30"
           >
             + Create User
           </button>
         </form>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 p-5">
-          <h4 className="font-bold text-[#092c45]">System Users</h4>
+      {/* System users table */}
+      <div className="overflow-hidden rounded-xl border border-[#ECEFF2] bg-white shadow-sm">
+        <div className="border-b border-[#ECEFF2] p-5">
+          <h4 className="font-bold text-[#292D32]">
+            System Users
+          </h4>
+          <p className="mt-1 text-sm text-[#737B86]">
+            {users.length} {users.length === 1 ? "user" : "users"} created
+          </p>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[700px] text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <thead className="bg-[#F8FAFB] text-xs uppercase tracking-wide text-[#737B86]">
               <tr>
-                <th className="px-4 py-3">#</th>
-                <th className="px-4 py-3">Username</th>
-                <th className="px-4 py-3">Full Name</th>
-                <th className="px-4 py-3">Role</th>
-                <th className="px-4 py-3">Permissions</th>
-                <th className="px-4 py-3">Action</th>
+                <th className="px-4 py-4 font-semibold">#</th>
+                <th className="px-4 py-4 font-semibold">Username</th>
+                <th className="px-4 py-4 font-semibold">Full Name</th>
+                <th className="px-4 py-4 font-semibold">Role</th>
+                <th className="px-4 py-4 font-semibold">Permissions</th>
+                <th className="px-4 py-4 font-semibold">Action</th>
               </tr>
             </thead>
-            <tbody>
+
+            <tbody className="divide-y divide-[#ECEFF2]">
               {users.length === 0 ? (
                 <tr>
                   <td
                     colSpan={6}
-                    className="px-4 py-8 text-center text-slate-500"
+                    className="px-4 py-12 text-center text-[#737B86]"
                   >
-                    No users found. Create your first user above.
+                    <p className="font-semibold text-[#454B54]">
+                      No users found.
+                    </p>
+                    <p className="mt-1 text-xs text-[#9298A1]">
+                      Create your first user using the form above.
+                    </p>
                   </td>
                 </tr>
               ) : (
                 users.map((user) => (
-                  <tr key={user.id} className="border-t border-slate-100">
-                    <td className="px-4 py-4">{user.id}</td>
-                    <td className="px-4 py-4 font-medium">
+                  <tr
+                    key={user.id}
+                    className="transition-colors duration-150 hover:bg-[#F8FAFB]"
+                  >
+                    <td className="px-4 py-4 text-[#9298A1]">
+                      {user.id}
+                    </td>
+
+                    <td className="px-4 py-4 font-semibold text-[#0A506E]">
                       {user.username}
                     </td>
-                    <td className="px-4 py-4">{user.fullName}</td>
-                    <td className="px-4 py-4">
-                      {user.role === "admin" ? "Admin" : "HR Manager"}
+
+                    <td className="px-4 py-4 font-medium text-[#292D32]">
+                      {user.fullName}
                     </td>
+
                     <td className="px-4 py-4">
+                      <span className="inline-flex rounded-full bg-[#E7F1F5] px-3 py-1 text-xs font-semibold text-[#0A506E]">
+                        {user.role === "admin" ? "Admin" : "HR Manager"}
+                      </span>
+                    </td>
+
+                    <td className="max-w-xs whitespace-normal px-4 py-4 text-[#737B86]">
                       {user.role === "admin"
                         ? "All permissions"
                         : permissionOptions
@@ -284,11 +355,12 @@ export default function UserManagement() {
                             .map((p) => p.label)
                             .join(", ") || "None"}
                     </td>
+
                     <td className="px-4 py-4">
                       <button
                         type="button"
                         onClick={() => deleteUser(user.id)}
-                        className="font-semibold text-red-600 hover:underline"
+                        className="rounded-lg px-3 py-2 font-semibold text-red-700 transition-colors duration-150 hover:bg-red-50"
                       >
                         Delete
                       </button>

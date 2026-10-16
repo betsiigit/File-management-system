@@ -1,8 +1,23 @@
+
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Main application colors */
+  --background: #F4F5F9;
+  --foreground: #292D32;
+
+  /* Brand colors */
+  --primary: #0A506E;
+  --primary-hover: #176A87;
+  --primary-active: #135B74;
+  --primary-light: #E7F1F5;
+
+  /* Surface and text colors */
+  --surface: #FFFFFF;
+  --border: #ECEFF2;
+  --text-primary: #292D32;
+  --text-secondary: #737B86;
+  --text-muted: #9298A1;
 }
 
 @theme inline {
@@ -12,19 +27,48 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  min-height: 100%;
 }
 
 body {
+  min-height: 100vh;
+  margin: 0;
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
+/* Consistent form typography */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* Accessible keyboard focus */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Preserve file-detail printing */
 @media print {
   body {
     background: white !important;
@@ -58,6 +102,7 @@ body {
     margin: 15mm;
   }
 }
+
 /* Hide only the sidebar scrollbar */
 .sidebar-scroll {
   scrollbar-width: none !important;

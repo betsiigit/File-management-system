@@ -45,13 +45,17 @@ export default function EmployeeForm({
   }
 
   const inputClass =
-    "mt-2 w-full rounded-lg border border-slate-300 px-3 py-3 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
+    "mt-2 w-full rounded-lg border border-[#D6E2E8] bg-white px-3 py-3 text-sm text-[#292D32] outline-none transition-colors duration-200 placeholder:text-[#9298A1] focus:border-[#0A506E] focus:ring-2 focus:ring-[#0A506E]/10";
+
+  const labelClass = "text-sm font-semibold text-[#454B54]";
 
   return (
-    <div className="max-w-3xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="bg-[#092c45] p-6 text-white">
-        <h2 className="text-xl font-bold">Register Employee</h2>
-        <p className="mt-1 text-sm text-slate-300">
+    <div className="max-w-3xl overflow-hidden rounded-xl border border-[#ECEFF2] bg-white shadow-sm">
+      <div className="bg-[#0A506E] p-6 text-white">
+        <h2 className="text-xl font-bold tracking-tight">
+          Register Employee
+        </h2>
+        <p className="mt-1 text-sm text-white/75">
           Enter the employee's information below.
         </p>
       </div>
@@ -59,7 +63,7 @@ export default function EmployeeForm({
       <form onSubmit={handleSubmit} className="space-y-5 p-6">
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
-            <label className="text-sm font-semibold text-slate-700">
+            <label className={labelClass}>
               Employee ID *
             </label>
             <input
@@ -72,7 +76,7 @@ export default function EmployeeForm({
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-slate-700">
+            <label className={labelClass}>
               Full Name *
             </label>
             <input
@@ -85,7 +89,7 @@ export default function EmployeeForm({
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-slate-700">
+            <label className={labelClass}>
               Department *
             </label>
             <input
@@ -98,7 +102,7 @@ export default function EmployeeForm({
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-slate-700">
+            <label className={labelClass}>
               Position *
             </label>
             <input
@@ -111,7 +115,7 @@ export default function EmployeeForm({
           </div>
 
           <div className="sm:col-span-2">
-            <label className="text-sm font-semibold text-slate-700">
+            <label className={labelClass}>
               Employment Status *
             </label>
             <select
@@ -128,23 +132,26 @@ export default function EmployeeForm({
         </div>
 
         {error && (
-          <p role="alert" className="text-sm font-medium text-red-600">
+          <p
+            role="alert"
+            className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
+          >
             {error}
           </p>
         )}
 
-        <div className="flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-5">
+        <div className="flex flex-wrap justify-end gap-3 border-t border-[#ECEFF2] pt-5">
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-lg border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            className="rounded-lg border border-[#D6E2E8] bg-white px-5 py-3 text-sm font-semibold text-[#454B54] transition-colors duration-200 hover:bg-[#F4F5F9] active:bg-[#ECEFF2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A506E]/30"
           >
             Cancel
           </button>
 
           <button
             type="submit"
-            className="rounded-lg bg-[#092c45] px-5 py-3 text-sm font-semibold text-white hover:bg-[#123f5e]"
+            className="rounded-lg bg-[#0A506E] px-5 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#176A87] active:bg-[#135B74] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A506E]/30"
           >
             Save Employee
           </button>

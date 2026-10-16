@@ -183,6 +183,7 @@ const [activeEmployeeSearch, setActiveEmployeeSearch] = useState("");
 const [inactiveEmployeeSearch, setInactiveEmployeeSearch] = useState("");
 const [showBulkEmployeeForm, setShowBulkEmployeeForm] = useState(false);
 const [bulkEmployeeText, setBulkEmployeeText] = useState("");
+const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
 
   const pending = files.filter(
@@ -410,74 +411,82 @@ const newFile: OfficeFile = {
 }
 
   return (
-    <main className="min-h-screen bg-slate-100 text-slate-800  md:ml-64">
-      <Sidebar
-        activeMenu={activeMenu}
-        onNavigate={handleNavigate}
-        language={language}
-      />
-
-  <section className="min-w-0 flex-1">
-  <Header
-    title={
-      profileView
-        ? profileView === "profile"
-          ? "My Profile"
-          : profileView === "edit-profile"
-            ? "Edit Profile"
-            : "Settings"
-        : activeMenu
-    }
+   
+<main
+  className={`min-h-screen bg-[#F4F5F9] text-[#292D32] transition-[margin] duration-300 ${
+    sidebarCollapsed ? "md:ml-20" : "md:ml-64"
+  }`}
+>
+  <Sidebar
+    activeMenu={activeMenu}
+    onNavigate={handleNavigate}
     language={language}
-    onLanguageChange={setLanguage}
+    collapsed={sidebarCollapsed}
+    onToggleCollapse={() => setSidebarCollapsed((previous) => !previous)}
   />
 
+  <section className="min-w-0 flex-1 bg-[#F4F5F9]">
+    <Header
+      title={
+        profileView
+          ? profileView === "profile"
+            ? "My Profile"
+            : profileView === "edit-profile"
+              ? "Edit Profile"
+              : "Settings"
+          : activeMenu
+      }
+      language={language}
+      onLanguageChange={setLanguage}
+    />
+
+
 {profileView ? (
-  <div className="space-y-4 p-5 md:p-8">
+  <div className="space-y-7 p-5 md:p-8 lg:p-9">
     <button
       type="button"
       onClick={() => setProfileView(null)}
-      className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+      className="rounded-lg border border-[#E2E6ED] bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-[#F4F7FA]"
     >
       ← Back to {activeMenu}
     </button>
 
     {profileView === "profile" && (
-  <div className="max-w-xl rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+  <div className="max-w-xl rounded-2xl border border-[#E7EAF0] bg-white p-6 shadow-[0_3px_14px_rgba(32,48,72,0.035)]">
     <div className="flex items-center gap-4">
-      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#dce8ef] text-2xl font-bold text-[#092c45]">
+      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#E8F9FB] text-2xl font-semibold tracking-tight text-[#292D32]">
         A
       </div>
       <div>
-        <h4 className="text-lg font-semibold text-[#092c45]">
+        <h4 className="text-lg font-semibold tracking-tight text-[#292D32]">
           Administrator
         </h4>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-[#7B8492]">
           Administrator · office Administrator
         </p>
       </div>
     </div>
 
-    <div className="mt-6 grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-2">
+    <div className="mt-6 grid gap-4 border-t border-[#EDF0F4] pt-5 sm:grid-cols-2">
       <div>
-        <p className="text-sm text-slate-500">Username</p>
+        <p className="text-sm text-[#7B8492]">Username</p>
         <p className="mt-1 font-medium">admin</p>
       </div>
       <div>
-        <p className="text-sm text-slate-500">Role</p>
+        <p className="text-sm text-[#7B8492]">Role</p>
         <p className="mt-1 font-medium">Administrator</p>
       </div>
       <div className="mt-4">
-  <p className="text-sm text-slate-500">Email Address</p>
+  <p className="text-sm text-[#7B8492]">Email Address</p>
   <p className="mt-1 font-medium">{profile.email}</p>
 </div>
       <div>
-        <p className="text-sm text-slate-500">{profile.department}</p>
+        <p className="text-sm text-[#7B8492]">{profile.department}</p>
         <p className="mt-1 font-medium">Administration</p>
       </div>
       <div>
-        <p className="text-sm text-slate-500">Account Status</p>
-        <p className="mt-1 font-medium text-emerald-700">Active</p>
+        <p className="text-sm text-[#7B8492]">Account Status</p>
+        <p className="mt-1 font-medium text-[#1595A5]">Active</p>
       </div>
     </div>
 
@@ -489,8 +498,8 @@ const newFile: OfficeFile = {
 
 
 {profileView === "edit-profile" && (
-  <div className="max-w-xl rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-    <h4 className="mb-5 text-lg font-semibold text-[#092c45]">
+  <div className="max-w-xl rounded-2xl border border-[#E7EAF0] bg-white p-6 shadow-[0_3px_14px_rgba(32,48,72,0.035)]">
+    <h4 className="mb-5 text-lg font-semibold tracking-tight text-[#292D32]">
       Edit Profile
     </h4>
 
@@ -516,7 +525,7 @@ const newFile: OfficeFile = {
               fullName: event.target.value,
             })
           }
-          className="w-full rounded-lg border border-slate-300 px-3 py-2"
+          className="w-full rounded-xl border border-[#E2E6ED] bg-white px-3 py-2.5 text-sm outline-none transition duration-200 focus:border-[#18B6C9] focus:ring-2 focus:ring-[#18B6C9]/15"
         />
       </div>
 
@@ -534,7 +543,7 @@ const newFile: OfficeFile = {
               email: event.target.value,
             })
           }
-          className="w-full rounded-lg border border-slate-300 px-3 py-2"
+          className="w-full rounded-xl border border-[#E2E6ED] bg-white px-3 py-2.5 text-sm outline-none transition duration-200 focus:border-[#18B6C9] focus:ring-2 focus:ring-[#18B6C9]/15"
         />
       </div>
 
@@ -551,14 +560,14 @@ const newFile: OfficeFile = {
               department: event.target.value,
             })
           }
-          className="w-full rounded-lg border border-slate-300 px-3 py-2"
+          className="w-full rounded-xl border border-[#E2E6ED] bg-white px-3 py-2.5 text-sm outline-none transition duration-200 focus:border-[#18B6C9] focus:ring-2 focus:ring-[#18B6C9]/15"
         />
       </div>
 
       <div className="flex gap-3 pt-2">
         <button
           type="submit"
-          className="rounded-lg bg-[#092c45] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#124766]"
+          className="rounded-lg bg-[#18B6C9] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1595A5]"
         >
           Save Changes
         </button>
@@ -569,7 +578,7 @@ const newFile: OfficeFile = {
             setEditProfile(profile);
             setProfileView("profile");
           }}
-          className="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-semibold hover:bg-slate-50"
+          className="rounded-xl border border-[#E5E9ED] px-5 py-2.5 text-sm font-medium transition hover:bg-[#EAF9FB]"
         >
           Cancel
         </button>
@@ -582,18 +591,18 @@ const newFile: OfficeFile = {
 
 {profileView === "settings" && (
   <div className="max-w-2xl space-y-6">
-    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h4 className="text-lg font-semibold text-[#092c45]">
+    <div className="rounded-2xl border border-[#E7EAF0] bg-white p-6 shadow-[0_3px_14px_rgba(32,48,72,0.035)]">
+      <h4 className="text-lg font-semibold tracking-tight text-[#292D32]">
         General Settings
       </h4>
-      <p className="mt-1 text-sm text-slate-500">
+      <p className="mt-1 text-sm text-[#7B8492]">
         Customize your application preferences.
       </p>
 
       <div className="mt-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
         <div>
           <p className="font-medium">Display Language</p>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-[#7B8492]">
             Choose your preferred language.
           </p>
         </div>
@@ -603,7 +612,7 @@ const newFile: OfficeFile = {
           onChange={(event) =>
             setLanguage(event.target.value as "English" | "Amharic")
           }
-          className="rounded-lg border border-slate-300 bg-white px-3 py-2"
+          className="rounded-lg border border-[#E2E6ED] bg-white px-3 py-2"
         >
           <option value="English">English</option>
           <option value="Amharic">አማርኛ (Amharic)</option>
@@ -611,11 +620,11 @@ const newFile: OfficeFile = {
       </div>
     </div>
 
-    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h4 className="text-lg font-semibold text-[#092c45]">
+    <div className="rounded-2xl border border-[#E7EAF0] bg-white p-6 shadow-[0_3px_14px_rgba(32,48,72,0.035)]">
+      <h4 className="text-lg font-semibold tracking-tight text-[#292D32]">
         Account Security
       </h4>
-      <p className="mt-2 text-sm text-slate-500">
+      <p className="mt-2 text-sm text-[#7B8492]">
         Password changes and security controls will be available
         after backend authentication is implemented.
       </p>
@@ -628,7 +637,7 @@ const newFile: OfficeFile = {
 
   </div>
 ) : (
-  <div className="space-y-6 p-5 md:p-8">
+  <div className="space-y-7 p-5 md:p-8 lg:p-9">
           {notice && (
             <div
               role="status"
@@ -641,10 +650,10 @@ const newFile: OfficeFile = {
           {activeMenu === "Dashboard" && !showForm && (
             <>
               <div>
-                <h3 className="text-2xl font-bold text-[#092c45]">
+                <h3 className="text-2xl font-semibold tracking-tight text-[#292D32]">
                   {t.welcome}
                 </h3>
-                <p className="mt-1 text-sm text-slate-500">
+               <p className="mt-1 text-sm text-[#9298A1]">
                    {t.overview}
                 </p>
               </div>
@@ -686,10 +695,10 @@ const newFile: OfficeFile = {
     {/* Heading and action buttons */}
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div>
-        <h3 className="text-2xl font-bold text-[#092c45]">
+        <h3 className="text-2xl font-semibold tracking-tight text-[#292D32]">
           Active Employees
         </h3>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-[#7B8492]">
           Employees currently active in the office.
         </p>
       </div>
@@ -698,7 +707,7 @@ const newFile: OfficeFile = {
         <button
           type="button"
           onClick={() => exportEmployees("Active")}
-          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold hover:bg-slate-50"
+          className="rounded-xl border border-[#E5E9ED] bg-white px-4 py-2.5 text-sm font-medium text-[#4B5563] transition hover:bg-[#EAF9FB]"
         >
           Export CSV
         </button>
@@ -706,7 +715,7 @@ const newFile: OfficeFile = {
         <button
           type="button"
           onClick={() => window.print()}
-          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold hover:bg-slate-50"
+          className="rounded-xl border border-[#E5E9ED] bg-white px-4 py-2.5 text-sm font-medium text-[#4B5563] transition hover:bg-[#EAF9FB]"
         >
           Print
         </button>
@@ -717,7 +726,7 @@ const newFile: OfficeFile = {
             setShowEmployeeForm(true);
             setEmployeeNotice("");
           }}
-          className="rounded-lg bg-[#092c45] px-4 py-2 text-sm font-semibold text-white hover:bg-[#123f5e]"
+         className="rounded-lg bg-[#0A506E] px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#176A87] active:bg-[#135B74]"
         >
           + Add Employee
         </button>
@@ -728,7 +737,7 @@ const newFile: OfficeFile = {
             setShowBulkEmployeeForm(true);
             setEmployeeNotice("");
           }}
-          className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-semibold text-[#092c45] hover:bg-amber-300"
+         className="rounded-lg bg-[#E7F1F5] px-4 py-2.5 text-sm font-semibold text-[#0A506E] transition-colors duration-200 hover:bg-[#D9EAF0]"
         >
           Bulk Add
         </button>
@@ -743,7 +752,7 @@ const newFile: OfficeFile = {
         setActiveEmployeeSearch(event.target.value)
       }
       placeholder="Search active employees..."
-      className="w-full max-w-md rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
+      className="w-full max-w-md rounded-xl border border-[#E5E9ED] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#18B6C9] focus:ring-2 focus:ring-[#18B6C9]/15"
     />
 
     {/* Employee statistics */}
@@ -772,12 +781,12 @@ const newFile: OfficeFile = {
 
     {/* Add employee or show table */}
     {showBulkEmployeeForm ? (
-      <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
-        <h4 className="text-lg font-bold text-[#092c45]">
+      <div className="space-y-4 rounded-2xl border border-[#ECEFF2] bg-white p-5 shadow-sm">
+        <h4 className="text-lg font-bold text-[#292D32]">
           Bulk Add Active Employees
         </h4>
 
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-[#7B8492]">
           Enter one employee per line: Employee ID, Full Name,
           Department, Position.
         </p>
@@ -789,14 +798,14 @@ const newFile: OfficeFile = {
           }
           rows={6}
           placeholder="EMP-004, Hana Tesfaye, Finance, Accountant"
-          className="w-full rounded-lg border border-slate-300 p-3 text-sm"
+          className="w-full rounded-xl border border-[#E2E6ED] bg-white p-3 text-sm outline-none transition duration-200 focus:border-[#18B6C9] focus:ring-2 focus:ring-[#18B6C9]/15"
         />
 
         <div className="flex gap-3">
           <button
             type="button"
             onClick={handleBulkAddEmployees}
-            className="rounded-lg bg-[#092c45] px-4 py-2 text-sm font-semibold text-white"
+           className="rounded-lg bg-[#0A506E] px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#176A87] active:bg-[#135B74]"
           >
             Add Employees
           </button>
@@ -807,7 +816,7 @@ const newFile: OfficeFile = {
               setShowBulkEmployeeForm(false);
               setBulkEmployeeText("");
             }}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm"
+            className="rounded-xl border border-[#E5E9ED] px-4 py-2 text-sm transition hover:bg-[#EAF9FB]"
           >
             Cancel
           </button>
@@ -846,10 +855,10 @@ const newFile: OfficeFile = {
     {/* Page heading and action buttons */}
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div>
-        <h3 className="text-2xl font-bold text-[#092c45]">
+        <h3 className="text-2xl font-semibold tracking-tight text-[#292D32]">
           Inactive Employees
         </h3>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-[#7B8492]">
           Employees who are currently inactive.
         </p>
       </div>
@@ -858,7 +867,7 @@ const newFile: OfficeFile = {
         <button
           type="button"
           onClick={() => exportEmployees("Inactive")}
-          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold hover:bg-slate-50"
+          className="rounded-lg border border-[#D6E2E8] bg-white px-4 py-2.5 text-sm font-medium text-[#0A506E] transition-colors duration-200 hover:border-[#0A506E] hover:bg-[#E7F1F5]"
         >
           Export CSV
         </button>
@@ -866,7 +875,7 @@ const newFile: OfficeFile = {
         <button
           type="button"
           onClick={() => window.print()}
-          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold hover:bg-slate-50"
+          className="rounded-lg border border-[#D6E2E8] bg-white px-4 py-2.5 text-sm font-medium text-[#0A506E] transition-colors duration-200 hover:border-[#0A506E] hover:bg-[#E7F1F5]"
         >
           Print
         </button>
@@ -877,7 +886,7 @@ const newFile: OfficeFile = {
             setShowEmployeeForm(true);
             setEmployeeNotice("");
           }}
-          className="rounded-lg bg-[#092c45] px-4 py-2 text-sm font-semibold text-white hover:bg-[#123f5e]"
+          className="rounded-lg bg-[#0A506E] px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#176A87] active:bg-[#135B74]"
         >
           + Add Inactive Employee
         </button>
@@ -888,7 +897,7 @@ const newFile: OfficeFile = {
     {employeeNotice && (
       <p
         role="status"
-        className="rounded-lg bg-slate-100 p-3 text-sm text-[#092c45]"
+        className="rounded-lg bg-slate-100 p-3 text-sm text-[#292D32]"
       >
         {employeeNotice}
       </p>
@@ -947,12 +956,12 @@ activeMenu !== "About" &&
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="text-xl font-bold text-[#092c45]">
+              <h3 className="text-lg font-semibold tracking-tight text-[#292D32]">
                 {activeMenu === "Dashboard"
                   ? "Recent Files"
                   : activeMenu}
               </h3>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-[#7B8492]">
                 Search and manage your office file records.
               </p>
             </div>
@@ -960,7 +969,7 @@ activeMenu !== "About" &&
             <button
               type="button"
               onClick={() => handleNavigate("Register File")}
-              className="rounded-lg bg-[#092c45] px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#124766]"
+             className="rounded-lg bg-[#0A506E] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-[#176A87] active:bg-[#135B74] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A506E]/30 focus-visible:ring-offset-2"
             >
               + Register New File
             </button>
@@ -980,7 +989,7 @@ activeMenu !== "About" &&
         </>
       )}
 
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-[#929BA8]">
         Frontend demo · Records are temporary and will reset on refresh.
       </p>
     </>
