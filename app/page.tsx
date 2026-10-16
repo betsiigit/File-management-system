@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
 import StatCard from "@/components/dashboard/StatCard";
@@ -104,10 +104,71 @@ const initialEmployees: Employee[] = [
   },
 ];
 export default function Home() {
+  const [language, setLanguage] = useState<"English" | "Amharic">("English");
+  
+const translations = {
+  English: {
+    dashboard: "Dashboard",
+    welcome: "Welcome back!",
+    overview: "Here is an overview of your office files.",
+    totalFiles: "Total Files",
+    pendingFiles: "Pending Files",
+    approvedFiles: "Approved Files",
+    archivedFiles: "Archived Files",
+    recentFiles: "Recent Files",
+    registerFile: "Register New File",
+    profile: "My Profile",
+    editProfile: "Edit Profile",
+    settings: "Settings",
+    back: "Back to Dashboard",
+    userManagement: "User Management",
+    employees: "Employees",
+    reports: "Reports",
+    variousJobs: "Various Jobs",
+    about: "About",
+  },
+  Amharic: {
+    dashboard: "ዳሽቦርድ",
+    welcome: "እንኳን ደህና መጡ!",
+    overview: "የቢሮዎ ፋይሎች አጠቃላይ ሁኔታ ይህ ነው።",
+    totalFiles: "ጠቅላላ ፋይሎች",
+    pendingFiles: "በመጠባበቅ ላይ ያሉ ፋይሎች",
+    approvedFiles: "የጸደቁ ፋይሎች",
+    archivedFiles: "የተመዘገቡ ፋይሎች",
+    recentFiles: "የቅርብ ጊዜ ፋይሎች",
+    registerFile: "አዲስ ፋይል መዝግብ",
+    profile: "የእኔ መገለጫ",
+    editProfile: "መገለጫ አርትዕ",
+    settings: "ቅንብሮች",
+    back: "ወደ ዳሽቦርድ ተመለስ",
+    userManagement: "የተጠቃሚ አስተዳደር",
+    employees: "ሰራተኞች",
+    reports: "ሪፖርቶች",
+    variousJobs: "የተለያዩ ስራዎች",
+    about: "ስለ ስርዓቱ",
+  },
+};
+
+const t = translations[language];
+
+  
+const [profile, setProfile] = useState({
+  fullName: "Office Administrator",
+  email: "admin@example.com",
+  department: "Administration",
+});
+
+  
+const [editProfile, setEditProfile] = useState(profile);
+const [profileMessage, setProfileMessage] = useState("");
+
   const [files, setFiles] = useState<OfficeFile[]>(initialFiles);
  const [employees, setEmployees] =
   useState<Employee[]>(initialEmployees);
   const [activeMenu, setActiveMenu] = useState("Dashboard");
+  const [profileView, setProfileView] = useState<
+  "profile" | "edit-profile" | "settings" | null
+>(null);
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
   const [department, setDepartment] = useState("Administration");
@@ -136,8 +197,40 @@ const [bulkEmployeeText, setBulkEmployeeText] = useState("");
     (file) => file.status === "Archived"
   ).length;
 
+
+
+  useEffect(() => {
+  function handleHeaderAction(event: Event) {
+    const customEvent = event as CustomEvent<{
+      action: string;
+    }>;
+
+    const action = customEvent.detail?.action;
+
+    if (
+      action === "profile" ||
+      action === "edit-profile" ||
+      action === "settings"
+    ) {
+      setProfileView(action);
+    }
+  }
+
+  window.addEventListener(
+    "office-header-action",
+    handleHeaderAction
+  );
+
+  return () => {
+    window.removeEventListener(
+      "office-header-action",
+      handleHeaderAction
+    );
+  };
+}, []);
   function handleNavigate(menu: string) {
     setActiveMenu(menu);
+    setProfileView(null);
     setNotice("");
     setShowForm(menu === "Register File");
   }
@@ -321,12 +414,221 @@ const newFile: OfficeFile = {
       <Sidebar
         activeMenu={activeMenu}
         onNavigate={handleNavigate}
+        language={language}
       />
 
-      <section className="min-w-0 flex-1">
-        <Header title={activeMenu} />
+  <section className="min-w-0 flex-1">
+  <Header
+    title={
+      profileView
+        ? profileView === "profile"
+          ? "My Profile"
+          : profileView === "edit-profile"
+            ? "Edit Profile"
+            : "Settings"
+        : activeMenu
+    }
+    language={language}
+    onLanguageChange={setLanguage}
+  />
 
-        <div className="space-y-6 p-5 md:p-8">
+{profileView ? (
+  <div className="space-y-4 p-5 md:p-8">
+    <button
+      type="button"
+      onClick={() => setProfileView(null)}
+      className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+    >
+      ← Back to {activeMenu}
+    </button>
+
+    {profileView === "profile" && (
+  <div className="max-w-xl rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="flex items-center gap-4">
+      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#dce8ef] text-2xl font-bold text-[#092c45]">
+        A
+      </div>
+      <div>
+        <h4 className="text-lg font-semibold text-[#092c45]">
+          Administrator
+        </h4>
+        <p className="text-sm text-slate-500">
+          Administrator · office Administrator
+        </p>
+      </div>
+    </div>
+
+    <div className="mt-6 grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-2">
+      <div>
+        <p className="text-sm text-slate-500">Username</p>
+        <p className="mt-1 font-medium">admin</p>
+      </div>
+      <div>
+        <p className="text-sm text-slate-500">Role</p>
+        <p className="mt-1 font-medium">Administrator</p>
+      </div>
+      <div className="mt-4">
+  <p className="text-sm text-slate-500">Email Address</p>
+  <p className="mt-1 font-medium">{profile.email}</p>
+</div>
+      <div>
+        <p className="text-sm text-slate-500">{profile.department}</p>
+        <p className="mt-1 font-medium">Administration</p>
+      </div>
+      <div>
+        <p className="text-sm text-slate-500">Account Status</p>
+        <p className="mt-1 font-medium text-emerald-700">Active</p>
+      </div>
+    </div>
+
+    <p className="mt-5 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+      Demo account details. Real account information will come from the backend.
+    </p>
+  </div>
+)}
+
+
+{profileView === "edit-profile" && (
+  <div className="max-w-xl rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <h4 className="mb-5 text-lg font-semibold text-[#092c45]">
+      Edit Profile
+    </h4>
+
+    <form
+      className="space-y-4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        setProfile(editProfile);
+        setProfileMessage("Profile updated successfully!");
+        setProfileView("profile");
+      }}
+    >
+      <div>
+        <label className="mb-1 block text-sm font-medium">
+          Full Name
+        </label>
+        <input
+          required
+          value={editProfile.fullName}
+          onChange={(event) =>
+            setEditProfile({
+              ...editProfile,
+              fullName: event.target.value,
+            })
+          }
+          className="w-full rounded-lg border border-slate-300 px-3 py-2"
+        />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium">
+          Email Address
+        </label>
+        <input
+          required
+          type="email"
+          value={editProfile.email}
+          onChange={(event) =>
+            setEditProfile({
+              ...editProfile,
+              email: event.target.value,
+            })
+          }
+          className="w-full rounded-lg border border-slate-300 px-3 py-2"
+        />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium">
+          Department
+        </label>
+        <input
+          required
+          value={editProfile.department}
+          onChange={(event) =>
+            setEditProfile({
+              ...editProfile,
+              department: event.target.value,
+            })
+          }
+          className="w-full rounded-lg border border-slate-300 px-3 py-2"
+        />
+      </div>
+
+      <div className="flex gap-3 pt-2">
+        <button
+          type="submit"
+          className="rounded-lg bg-[#092c45] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#124766]"
+        >
+          Save Changes
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setEditProfile(profile);
+            setProfileView("profile");
+          }}
+          className="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-semibold hover:bg-slate-50"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+)}
+
+
+
+{profileView === "settings" && (
+  <div className="max-w-2xl space-y-6">
+    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h4 className="text-lg font-semibold text-[#092c45]">
+        General Settings
+      </h4>
+      <p className="mt-1 text-sm text-slate-500">
+        Customize your application preferences.
+      </p>
+
+      <div className="mt-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+        <div>
+          <p className="font-medium">Display Language</p>
+          <p className="text-sm text-slate-500">
+            Choose your preferred language.
+          </p>
+        </div>
+
+        <select
+          value={language}
+          onChange={(event) =>
+            setLanguage(event.target.value as "English" | "Amharic")
+          }
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2"
+        >
+          <option value="English">English</option>
+          <option value="Amharic">አማርኛ (Amharic)</option>
+        </select>
+      </div>
+    </div>
+
+    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h4 className="text-lg font-semibold text-[#092c45]">
+        Account Security
+      </h4>
+      <p className="mt-2 text-sm text-slate-500">
+        Password changes and security controls will be available
+        after backend authentication is implemented.
+      </p>
+      <span className="mt-3 inline-block rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+        Coming soon
+      </span>
+    </div>
+  </div>
+)}
+
+  </div>
+) : (
+  <div className="space-y-6 p-5 md:p-8">
           {notice && (
             <div
               role="status"
@@ -340,37 +642,37 @@ const newFile: OfficeFile = {
             <>
               <div>
                 <h3 className="text-2xl font-bold text-[#092c45]">
-                  Welcome back!
+                  {t.welcome}
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  Here is an overview of your office files.
+                   {t.overview}
                 </p>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard
-                  label="Total Files"
+                  label={t.totalFiles}
                   value={files.length}
                   icon="▤"
                   description="All registered files"
                 />
 
                 <StatCard
-                  label="Pending Files"
+                  label={t.pendingFiles}
                   value={pending}
                   icon="◷"
                   description="Awaiting action"
                 />
 
                 <StatCard
-                  label="Approved Files"
+                  label={t.approvedFiles}
                   value={approved}
                   icon="✓"
                   description="Approved records"
                 />
 
                 <StatCard
-                  label="Archived Files"
+                  label={t.archivedFiles}
                   value={archived}
                   icon="▣"
                   description="Archived records"
@@ -684,8 +986,11 @@ activeMenu !== "About" &&
     </>
   )}
 
+       
         </div>
+      )}
       </section>
     </main>
   );
 }
+

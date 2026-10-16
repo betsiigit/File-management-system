@@ -1,41 +1,80 @@
 "use client";
-
-const mainMenuItems = [
-  { label: "Dashboard", icon: "⌂" },
-  { label: "Register File", icon: "✎" },
-  { label: "All Files", icon: "▤" },
-  { label: "File Transfers", icon: "⇄" },
-  { label: "Various Jobs", icon: "↔" },
-  { label: "Active Employees", icon: "♙" },
-  { label: "Inactive Employees", icon: "♙" },
-  { label: "Reports", icon: "▥" },
-];
-
-const adminMenuItems = [
-  { label: "User Management", icon: "⚙" },
-  { label: "About", icon: "ⓘ" },
-];
+const sidebarTranslations = {
+  English: {
+    Dashboard: "Dashboard",
+    "Register File": "Register File",
+    "All Files": "All Files",
+    "File Transfers": "File Transfers",
+    "Various Jobs": "Various Jobs",
+    "Active Employees": "Active Employees",
+    "Inactive Employees": "Inactive Employees",
+    Reports: "Reports",
+    "User Management": "User Management",
+    About: "About",
+    "Main Menu": "Main Menu",
+    Admin: "Admin",
+    "Office Files": "Office Files",
+    "Management System": "Management System",
+  },
+  Amharic: {
+    Dashboard: "ዳሽቦርድ",
+    "Register File": "ፋይል መዝግብ",
+    "All Files": "ሁሉም ፋይሎች",
+    "File Transfers": "የፋይል ማስተላለፊያ",
+    "Various Jobs": "የተለያዩ ስራዎች",
+    "Active Employees": "ንቁ ሰራተኞች",
+    "Inactive Employees": "ንቁ ያልሆኑ ሰራተኞች",
+    Reports: "ሪፖርቶች",
+    "User Management": "የተጠቃሚ አስተዳደር",
+    About: "ስለ ስርዓቱ",
+    "Main Menu": "ዋና ምናሌ",
+    Admin: "አስተዳዳሪ",
+    "Office Files": "የቢሮ ፋይሎች",
+    "Management System": "የአስተዳደር ስርዓት",
+  },
+};
 
 type SidebarProps = {
   activeMenu: string;
   onNavigate: (menu: string) => void;
+  language?: "English" | "Amharic";
 };
 
 export default function Sidebar({
   activeMenu,
   onNavigate,
+  language = "English",
 }: SidebarProps) {
+  const st = sidebarTranslations[language];
+
+  const mainMenuItems = [
+    { key: "Dashboard", label: st.Dashboard, icon: "⌂" },
+    { key: "Register File", label: st["Register File"], icon: "✎" },
+    { key: "All Files", label: st["All Files"], icon: "▤" },
+    { key: "File Transfers", label: st["File Transfers"], icon: "⇄" },
+    { key: "Various Jobs", label: st["Various Jobs"], icon: "↔" },
+    { key: "Active Employees", label: st["Active Employees"], icon: "♙" },
+    { key: "Inactive Employees", label: st["Inactive Employees"], icon: "♙" },
+    { key: "Reports", label: st.Reports, icon: "▥" },
+  ];
+
+  const adminMenuItems = [
+    { key: "User Management", label: st["User Management"], icon: "⚙" },
+    { key: "About", label: st.About, icon: "ⓘ" },
+  ];
+
   const renderMenuItems = (
     items: typeof mainMenuItems
   ) =>
     items.map((item) => {
-      const isActive = activeMenu === item.label;
+      const isActive =
+        activeMenu === item.key || activeMenu === item.label;
 
       return (
         <button
-          key={item.label}
+          key={item.key}
           type="button"
-          onClick={() => onNavigate(item.label)}
+          onClick={() => onNavigate(item.key)}
           aria-current={isActive ? "page" : undefined}
           className={`flex items-center gap-3 rounded-lg px-3 py-3 text-left text-sm transition ${
             isActive
@@ -46,7 +85,7 @@ export default function Sidebar({
           <span className="w-5 text-center text-lg">
             {item.icon}
           </span>
-          {item.label}
+        {item.label}
         </button>
       );
     });
@@ -59,16 +98,16 @@ export default function Sidebar({
         </div>
 
         <div>
-          <h1 className="font-bold">Office Files</h1>
+          <h1 className="font-bold">{st["Office Files"]}</h1>
           <p className="text-xs text-slate-300">
-            Management System
+            {st["Management System"]}
           </p>
         </div>
       </div>
 
       <div className="px-4 py-5">
         <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-widest text-slate-400">
-          Main Menu
+          {st["Main Menu"]}
         </p>
 
         <nav className="grid grid-cols-2 gap-1 md:grid-cols-1">
@@ -76,7 +115,7 @@ export default function Sidebar({
         </nav>
 
         <p className="mb-3 mt-7 px-3 text-xs font-semibold uppercase tracking-widest text-slate-400">
-          Admin
+          {st.Admin}
         </p>
 
         <nav className="grid grid-cols-2 gap-1 md:grid-cols-1">

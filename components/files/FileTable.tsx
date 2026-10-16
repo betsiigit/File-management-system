@@ -102,7 +102,7 @@ export default function FileTable({
                 <td className="whitespace-nowrap px-5 py-4 text-slate-600">
                   {file.date}
                 </td>
-               ```tsx
+               
 <td className="px-5 py-4">
   <button
     type="button"
