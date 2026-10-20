@@ -8,8 +8,12 @@ import {
   Settings,
   LogOut,
   ChevronDown,
-   Globe,
+  Globe,
+  Sun,
+  Moon,
 } from "lucide-react";
+
+import { useTheme } from "@/components/providers/ThemeProvider";
 const pageDescriptions: Record<string, string> = {
   Dashboard: "Get an overview of office files and activities.",
   "Office Files": "View, search, and manage registered office files.",
@@ -35,6 +39,7 @@ export default function Header({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -73,7 +78,7 @@ export default function Header({
   }
 
   return (
-    <header className="sticky top-0 z-40 flex min-h-[64px] items-center justify-between gap-4 border-b border-[#ECEFF2] bg-white px-5 py-2.5 md:px-8">
+    <header className="sticky top-0 z-40 flex min-h-[64px] items-center justify-between gap-4 border-b border-[var(--border)] bg-[var(--surface)] px-5 py-2.5 md:px-8">
       <div className="min-w-0">
         {/* <p className="text-xs font-medium text-[#9298A1] sm:text-sm">
           Office File Management
@@ -89,6 +94,27 @@ export default function Header({
   </p>
       </div>
       <div className="ml-auto flex shrink-0 items-center gap-3">
+        <button
+  type="button"
+  onClick={toggleTheme}
+  aria-label={
+    theme === "light"
+      ? "Switch to dark mode"
+      : "Switch to light mode"
+  }
+  title={
+    theme === "light"
+      ? "Switch to dark mode"
+      : "Switch to light mode"
+  }
+  className="flex h-10 w-10 items-center justify-center rounded-lg text-[#737B86] transition-colors duration-200 hover:bg-[#E7F1F5] hover:text-[#0A506E]"
+>
+  {theme === "light" ? (
+    <Moon size={20} strokeWidth={1.7} />
+  ) : (
+    <Sun size={20} strokeWidth={1.7} />
+  )}
+</button>
         <div className="relative">
   <button
     type="button"

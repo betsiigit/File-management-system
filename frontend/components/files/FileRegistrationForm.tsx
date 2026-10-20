@@ -6,13 +6,15 @@ import { useState, type FormEvent } from "react";
 export type RegisteredFileData = {
   fileType: "Incoming" | "Outgoing";
   reference: string;
+  volume:string;
+  outgoing_date: string;
   date: string;
   pages: number;
   department: string;
   assignedOfficer: string;
   title: string;
   remarks: string;
-  attachment: File | null;
+attachments: File[];
 };
 
 type FileRegistrationFormProps = {
@@ -30,13 +32,15 @@ export default function FileRegistrationForm({
 }: FileRegistrationFormProps) {
   const [fileType, setFileType] = useState<"Incoming" | "Outgoing">("Incoming");
   const [reference, setReference] = useState("");
+  const [volume, setVolume] = useState("");
+const [outgoing_date, setOutgoingDate] = useState("");
   const [date, setDate] = useState("");
   const [pages, setPages] = useState("1");
   const [department, setDepartment] = useState("");
   const [assignedOfficer, setAssignedOfficer] = useState("");
   const [title, setTitle] = useState("");
   const [remarks, setRemarks] = useState("");
-  const [attachment, setAttachment] = useState<File | null>(null);
+ const [attachments, setAttachments] = useState<File[]>([]);
   const [error, setError] = useState("");
 
   const inputClass =
@@ -49,6 +53,7 @@ export default function FileRegistrationForm({
 
     if (
       !reference.trim() ||
+      !volume.trim() ||
       !date ||
       !department ||
       !title.trim() ||
@@ -71,20 +76,24 @@ export default function FileRegistrationForm({
       assignedOfficer,
       title: title.trim(),
       remarks: remarks.trim(),
-      attachment,
+     attachments,
+      volume: volume.trim(),
+      outgoing_date: fileType === "Outgoing" ? date : "",
     });
   }
 
   function handleClear() {
     setFileType("Incoming");
     setReference("");
+    setVolume("");
+    setOutgoingDate("");
     setDate("");
     setPages("1");
     setDepartment("");
     setAssignedOfficer("");
     setTitle("");
     setRemarks("");
-    setAttachment(null);
+    setAttachments([]);
     setError("");
   }
 
@@ -130,6 +139,19 @@ export default function FileRegistrationForm({
               required
             />
           </div>
+          <div>
+  <label className={labelClass}>
+    Volume *
+  </label>
+  <input
+    type="text"
+    value={volume}
+    onChange={(e) => setVolume(e.target.value)}
+    placeholder="e.g. Volume 1"
+    className={inputClass}
+    required
+  />
+</div>
 
           <div>
             <label className={labelClass}>
@@ -143,6 +165,17 @@ export default function FileRegistrationForm({
               required
             />
           </div>
+          <div>
+  <label className={labelClass}>
+    Outgoing Date *
+  </label>
+  <input
+    type="date"
+    value={outgoing_date}
+    onChange={(e) => setOutgoingDate(e.target.value)}
+    className={inputClass}
+  />
+</div>
 
           <div>
             <label className={labelClass}>
@@ -237,14 +270,17 @@ export default function FileRegistrationForm({
             <label className={labelClass}>
               Attach Document (optional)
             </label>
-            <input
-              type="file"
-              accept=".pdf,application/pdf"
-              onChange={(e) =>
-                setAttachment(e.target.files?.[0] ?? null)
-              }
-              className={`${inputClass} file:mr-3 file:rounded-md file:border-0 file:bg-[#E7F1F5] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[#0A506E] hover:file:bg-[#D9EAF0]`}
-            />
+           
+<input
+  type="file"
+  accept=".pdf,application/pdf"
+  multiple
+  onChange={(e) =>
+    setAttachments(Array.from(e.target.files || []))
+  }
+  className={`${inputClass} file:mr-3 file:rounded-md file:border-0 file:bg-[#E7F1F5] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[#0A506E] hover:file:bg-[#D9EAF0]`}
+/>
+
             <p className="mt-1 text-xs text-[#737B86]">
               PDF files only. The attachment is selected locally for now.
             </p>

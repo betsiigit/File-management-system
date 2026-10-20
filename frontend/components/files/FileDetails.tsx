@@ -23,11 +23,16 @@ export default function FileDetails({
     { label: "Reference Number", value: file.reference },
     { label: "File Name / Subject", value: file.title },
     { label: "Registration Date", value: file.date },
+     { label: "Volume", value: file.volume || "Not recorded" },
     {
       label: "Number of Pages",
       value: file.pages != null ? String(file.pages) : "Not recorded",
     },
     { label: "Department", value: file.department },
+      {
+    label: "Outgoing Date",
+    value: file.outgoing_date || "Not recorded",
+  },
     {
       label: "Assigned Officer",
       value: file.assignedOfficer || "Not assigned",
@@ -38,7 +43,7 @@ export default function FileDetails({
     },
     {
       label: "Attachment",
-      value: file.attachmentName || "No attachment recorded",
+      value: file.attachmentNames?.join(", ") || "No attachment recorded",
     },
   ];
 

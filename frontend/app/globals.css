@@ -2,6 +2,8 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: light;
+
   /* Main application colors */
   --background: #F4F5F9;
   --foreground: #292D32;
@@ -14,10 +16,39 @@
 
   /* Surface and text colors */
   --surface: #FFFFFF;
+  --surface-secondary: #F8FAFC;
   --border: #ECEFF2;
   --text-primary: #292D32;
   --text-secondary: #737B86;
   --text-muted: #9298A1;
+
+  /* Shared interaction colors */
+  --focus-ring: #0A506E;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Main application colors */
+  --background: #111827;
+  --foreground: #F3F4F6;
+
+  /* Keep ECC branding */
+  --primary: #8BC7E0;
+  --primary-hover: #A5D8EA;
+  --primary-active: #6BB4D2;
+  --primary-light: #203B4A;
+
+  /* Surface and text colors */
+  --surface: #1F2937;
+  --surface-secondary: #182230;
+  --border: #374151;
+  --text-primary: #F3F4F6;
+  --text-secondary: #D1D5DB;
+  --text-muted: #9CA3AF;
+
+  /* Shared interaction colors */
+  --focus-ring: #8BC7E0;
 }
 
 @theme inline {
@@ -36,11 +67,14 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
 }
 
 /* Consistent form typography */
@@ -64,12 +98,46 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
+}
+
+/* Smooth theme transitions */
+body,
+header,
+aside,
+main,
+section,
+article,
+nav,
+input,
+select,
+textarea,
+button,
+table,
+th,
+td {
+  transition:
+    background-color 200ms ease,
+    border-color 200ms ease,
+    color 200ms ease;
 }
 
 /* Preserve file-detail printing */
 @media print {
+  :root,
+  html[data-theme="dark"] {
+    color-scheme: light;
+    --background: #FFFFFF;
+    --foreground: #000000;
+    --surface: #FFFFFF;
+    --surface-secondary: #FFFFFF;
+    --border: #DDDDDD;
+    --text-primary: #000000;
+    --text-secondary: #333333;
+    --text-muted: #555555;
+  }
+
   body {
     background: white !important;
     color: black !important;

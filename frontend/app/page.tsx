@@ -19,20 +19,23 @@ import VariousJobs from "@/components/files/VariousJobs";
 import UserManagement from "@/components/users/UserManagement";
 import About from "@/components/About";
 import Reports from "@/components/reports/Reports";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
 
 type OfficeFile = {
   id: number;
   reference: string;
+  volume: string;
   title: string;
   department: string;
   date: string;
+  outgoing_date: string;
   status: "Pending" | "Approved" | "Archived";
   fileType?: "Incoming" | "Outgoing";
   pages?: number;
   assignedOfficer?: string;
   remarks?: string;
-  attachmentName?: string;
+ attachmentNames?: string[];
 };
 
 const initialFiles: OfficeFile[] = [
@@ -43,6 +46,8 @@ const initialFiles: OfficeFile[] = [
     department: "Procurement",
     date: "2026-10-01",
     status: "Approved",
+    volume: "Volume 1",
+    outgoing_date: "2026-10-15",
   },
   {
     id: 2,
@@ -51,6 +56,8 @@ const initialFiles: OfficeFile[] = [
     department: "Human Resources",
     date: "2026-10-03",
     status: "Pending",
+    volume: "Volume 1",
+    outgoing_date: "2026-10-20",
   },
   {
     id: 3,
@@ -59,6 +66,8 @@ const initialFiles: OfficeFile[] = [
     department: "Finance",
     date: "2026-10-05",
     status: "Approved",
+    volume: "Volume 1",
+    outgoing_date: "2026-10-25",
   },
   {
     id: 4,
@@ -67,6 +76,8 @@ const initialFiles: OfficeFile[] = [
     department: "Information Technology",
     date: "2026-10-07",
     status: "Archived",
+    volume: "Volume 1",
+    outgoing_date: "",
   },
 ];
 
@@ -163,6 +174,7 @@ const [editProfile, setEditProfile] = useState(profile);
 const [profileMessage, setProfileMessage] = useState("");
 
   const [files, setFiles] = useState<OfficeFile[]>(initialFiles);
+  const [selectedVolume, setSelectedVolume] = useState("All");
  const [employees, setEmployees] =
   useState<Employee[]>(initialEmployees);
   const [activeMenu, setActiveMenu] = useState("Dashboard");
@@ -392,15 +404,17 @@ function registerFile(data: RegisteredFileData) {
 const newFile: OfficeFile = {
   id: nextId,
   reference: data.reference,
+  volume: data.volume,
   title: data.title,
   department: data.department,
   date: data.date,
+  outgoing_date: data.outgoing_date,
   status: "Pending",
   fileType: data.fileType,
   pages: data.pages,
   assignedOfficer: data.assignedOfficer,
   remarks: data.remarks,
-  attachmentName: data.attachment?.name,
+  attachmentNames: data.attachments.map((file) => file.name),
 };
 
 
@@ -413,7 +427,7 @@ const newFile: OfficeFile = {
   return (
    
 <main
-  className={`min-h-screen bg-[#F4F5F9] text-[#292D32] transition-[margin] duration-300 ${
+  className={`min-h-screen bg-[var(--background)] text-[var(--text-primary)] transition-[margin] duration-300 ${
     sidebarCollapsed ? "md:ml-20" : "md:ml-64"
   }`}
 >
@@ -425,7 +439,7 @@ const newFile: OfficeFile = {
     onToggleCollapse={() => setSidebarCollapsed((previous) => !previous)}
   />
 
-  <section className="min-w-0 flex-1 bg-[#F4F5F9]">
+  <section className="min-w-0 flex-1 bg-[var(--background)]">
     <Header
       title={
         profileView
