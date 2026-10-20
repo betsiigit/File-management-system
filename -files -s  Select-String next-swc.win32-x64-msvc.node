@@ -1,0 +1,45 @@
+ .gitignore                                         |  13 [32m+[m
+ backend/.gitattributes                             |   2 [32m+[m
+ backend/.gitignore                                 |  33 [32m++[m
+ backend/.mvn/wrapper/maven-wrapper.properties      |   3 [32m+[m
+ backend/mvnw                                       | 295 [32m+++++++++++++++[m
+ backend/mvnw.cmd                                   | 189 [32m++++++++++[m
+ backend/pom.xml                                    |  92 [32m+++++[m
+ .../EccFileManagementSystemApplication.java        |  13 [32m+[m
+ .../HealthController.java                          |  17 [32m+[m
+ .../ecc/ecc_file_management_system/OfficeFile.java | 148 [32m++++++++[m
+ .../ecc_file_management_system/SecurityConfig.java |  26 [32m++[m
+ backend/src/main/resources/application.properties  |  16 [32m+[m
+ .../EccFileManagementSystemApplicationTests.java   |  13 [32m+[m
+ components/files/FileTable.tsx                     | 153 [31m--------[m
+ {app => frontend/app}/favicon.ico                  | Bin
+ {app => frontend/app}/globals.css                  |  72 [32m+++[m[31m-[m
+ {app => frontend/app}/layout.tsx                   |  16 [32m+[m[31m-[m
+ {app => frontend/app}/login/page.tsx               |   0
+ {app => frontend/app}/page.tsx                     |  22 [32m+[m[31m-[m
+ {components => frontend/components}/About.tsx      |   0
+ .../components}/dashboard/StatCard.tsx             |   0
+ .../components}/employees/EmployeeForm.tsx         |   0
+ .../components}/employees/EmployeeTable.tsx        |   0
+ .../components}/files/FileDetails.tsx              |   7 [32m+[m[31m-[m
+ .../components}/files/FileRegistrationForm.tsx     |  60 [32m++[m[31m-[m
+ frontend/components/files/FileTable.tsx            | 405 [32m+++++++++++++++++++++[m
+ .../components}/files/FileTransfers.tsx            |   0
+ .../components}/files/VariousJobs.tsx              |   0
+ .../components}/layout/Header.tsx                  |  30 [32m+[m[31m-[m
+ .../components}/layout/Sidebar.tsx                 |   0
+ frontend/components/providers/ThemeProvider.tsx    |  79 [32m++++[m
+ .../components}/reports/Reports.tsx                |   0
+ .../components}/users/UserManagement.tsx           |   0
+ eslint.config.mjs => frontend/eslint.config.mjs    |   0
+ next.config.ts => frontend/next.config.ts          |   0
+ package-lock.json => frontend/package-lock.json    | 106 [32m+++++[m[31m-[m
+ package.json => frontend/package.json              |   3 [32m+[m[31m-[m
+ {public => frontend/public}/file.svg               |   0
+ {public => frontend/public}/globe.svg              |   0
+ {public => frontend/public}/logo.png               | Bin
+ {public => frontend/public}/next.svg               |   0
+ {public => frontend/public}/vercel.svg             |   0
+ {public => frontend/public}/window.svg             |   0
+ tsconfig.json => frontend/tsconfig.json            |   0
+ 44 files changed, 1633 insertions(+), 180 deletions(-)
