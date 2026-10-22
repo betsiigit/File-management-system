@@ -18,6 +18,7 @@ export type OfficeFile = {
   assignedOfficer?: string;
   remarks?: string;
   attachmentNames?: string[];
+  documentPath?: string;
 };
 
 type FileTableProps = {

@@ -41,10 +41,23 @@ export default function FileDetails({
       label: "Remarks / Description",
       value: file.remarks || "No remarks",
     },
-    {
-      label: "Attachment",
-      value: file.attachmentNames?.join(", ") || "No attachment recorded",
-    },
+  
+{
+  label: "Attachment",
+  value: file.documentPath ? (
+    <a
+      href={`http://localhost:8081${file.documentPath}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-[#0A506E] underline hover:text-[#087EA4]"
+    >
+      Open attached PDF
+    </a>
+  ) : (
+    file.attachmentNames?.join(", ") || "No attachment recorded"
+  ),
+},
+
   ];
 
   return (

@@ -268,6 +268,7 @@ const mappedFiles: OfficeFile[] = savedFiles.map(
     remarks: string | null;
     volume: string | null;
 status: string | null;
+documentPath: string | null;
   }) => {
     const existingFile = files.find(
       (item) =>
@@ -278,6 +279,7 @@ status: string | null;
     return {
       id: file.id,
       reference: file.referenceNumber,
+      
        volume: file.volume ?? existingFile?.volume ?? "",
       title: file.title,
       department: file.department ?? "",
@@ -289,6 +291,7 @@ status: string | null;
       assignedOfficer: file.assignedOfficer ?? "",
       remarks: file.remarks ?? "",
       attachmentNames: existingFile?.attachmentNames ?? [],
+      documentPath: file.documentPath ?? "",
     };
   }
 );
@@ -463,24 +466,51 @@ async function registerFile(data: RegisteredFileData) {
   try {
     setNotice("Registering file...");
 
-    const response = await fetch("http://localhost:8081/api/office-files", {
+let documentPath: string | null = null;
+
+if (data.attachments.length > 0) {
+  const uploadForm = new FormData();
+  uploadForm.append("files", data.attachments[0]);
+
+  const uploadResponse = await fetch(
+    "http://localhost:8081/api/attachments",
+    {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        referenceNumber: data.reference,
-        title: data.title,
-        fileType: data.fileType,
-        registrationDate: data.date,
-        numberOfPages: data.pages,
-        department: data.department,
-        assignedOfficer: data.assignedOfficer || null,
+      body: uploadForm,
+    }
+  );
+
+  if (!uploadResponse.ok) {
+    throw new Error("Failed to upload the PDF attachment.");
+  }
+
+  const uploadedPaths: string[] = await uploadResponse.json();
+  documentPath = uploadedPaths[0] ?? null;
+}
+
+const response = await fetch(
+  "http://localhost:8081/api/office-files",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      referenceNumber: data.reference,
+      title: data.title,
+      fileType: data.fileType,
+      registrationDate: data.date,
+      numberOfPages: data.pages,
+      department: data.department,
+      assignedOfficer: data.assignedOfficer || null,
       remarks: data.remarks || null,
-volume: data.volume?.trim() || null,
-status: data.status || "Pending",
-      }),
-    });
+      volume: data.volume?.trim() || null,
+      status: data.status || "Pending",
+      documentPath,
+    }),
+  }
+);
+
 
     if (!response.ok) {
       const message = await response.text();
