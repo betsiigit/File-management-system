@@ -38,28 +38,39 @@ export default function FileTable({
   const filteredFiles = useMemo(() => {
     const query = search.trim().toLowerCase();
 
-    return files.filter((file) => {
-      const matchesSearch = [
-        file.reference,
-        file.title,
-        file.department,
-        file.volume,
-      ].some((value) => value.toLowerCase().includes(query));
+return files.filter((file) => {
+  const volume = file.volume ?? "";
+  const status = file.status ?? "Pending";
 
-      const matchesStatus =
-        statusFilter === "All" || file.status === statusFilter;
+  const matchesSearch = [
+    file.reference,
+    file.title,
+    file.department,
+    volume,
+  ].some((value) => (value ?? "").toLowerCase().includes(query));
 
-      const matchesVolume =
-        volumeFilter === "All" || file.volume === volumeFilter;
+  const matchesStatus =
+    statusFilter === "All" || status === statusFilter;
 
-      return matchesSearch && matchesStatus && matchesVolume;
-    });
+  const matchesVolume =
+    volumeFilter === "All" || volume === volumeFilter;
+
+  return matchesSearch && matchesStatus && matchesVolume;
+});
+
   }, [files, search, statusFilter, volumeFilter]);
 
-  const volumes = useMemo(
-    () => [...new Set(files.map((file) => file.volume))].sort(),
-    [files]
-  );
+ 
+const volumes = useMemo(
+  () =>
+    [...new Set(
+      files
+        .map((file) => file.volume ?? "")
+        .filter((volume) => volume !== "")
+    )].sort(),
+  [files]
+);
+
 
 const volumeFiles = useMemo(() => {
   return files
@@ -323,6 +334,7 @@ function handleImportExcel() {
               <th className="px-5 py-4 font-semibold">File Name</th>
               <th className="px-5 py-4 font-semibold">Department</th>
               <th className="px-5 py-4 font-semibold">Date</th>
+              <th className="px-5 py-4 font-semibold">Outgoing Date</th>
               <th className="px-5 py-4 font-semibold">Status</th>
               <th className="px-5 py-4 font-semibold">Action</th>
             </tr>
@@ -338,7 +350,7 @@ function handleImportExcel() {
                   {file.reference}
                 </td>
                 <td className="whitespace-nowrap px-5 py-4 text-[#737B86]">
-                   {file.volume}
+                   {file.volume || "—"}
                 </td> 
                 <td className="px-5 py-4 font-medium text-[#292D32]">
                   {file.title}
@@ -353,7 +365,7 @@ function handleImportExcel() {
                 </td>
 
                 <td className="whitespace-nowrap px-5 py-4 text-[#737B86]">
-                  {file.outgoing_date}
+                   {file.outgoing_date}
                 </td>
 
                 <td className="px-5 py-4">
@@ -366,7 +378,7 @@ function handleImportExcel() {
                           : "bg-slate-100 text-slate-600"
                     }`}
                   >
-                    {file.status}
+                    {file.status || "Pending"}
                   </span>
                 </td>
 
@@ -386,7 +398,7 @@ function handleImportExcel() {
             {filteredFiles.length === 0 && (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={8}
                   className="px-5 py-12 text-center text-sm text-[#737B86]"
                 >
                   No files found. Try another search.

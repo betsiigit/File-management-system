@@ -7,6 +7,7 @@ export type RegisteredFileData = {
   fileType: "Incoming" | "Outgoing";
   reference: string;
   volume:string;
+  status: string;
   outgoing_date: string;
   date: string;
   pages: number;
@@ -14,6 +15,7 @@ export type RegisteredFileData = {
   assignedOfficer: string;
   title: string;
   remarks: string;
+  
 attachments: File[];
 };
 
@@ -79,6 +81,7 @@ const [outgoing_date, setOutgoingDate] = useState("");
      attachments,
       volume: volume.trim(),
       outgoing_date: fileType === "Outgoing" ? date : "",
+      status: "Pending",
     });
   }
 

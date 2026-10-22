@@ -25,6 +25,12 @@ public class OfficeFile {
     @Column(name = "reference_number", nullable = false, unique = true)
     private String referenceNumber;
 
+    @Column(name = "volume")
+private String volume;
+
+@Column(name = "status", nullable = false)
+private String status = "Pending";
+
     @NotBlank(message = "File title is required")
     @Column(nullable = false)
     private String title;
@@ -69,6 +75,22 @@ public class OfficeFile {
     public String getReferenceNumber() {
         return referenceNumber;
     }
+
+    public String getVolume() {
+    return volume;
+}
+
+public void setVolume(String volume) {
+    this.volume = volume;
+}
+
+public String getStatus() {
+    return status;
+}
+
+public void setStatus(String status) {
+    this.status = status;
+}
 
     public void setReferenceNumber(String referenceNumber) {
         this.referenceNumber = referenceNumber;

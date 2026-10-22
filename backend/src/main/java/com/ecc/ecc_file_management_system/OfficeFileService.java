@@ -134,6 +134,14 @@ public class OfficeFileService {
         existingFile.setRemarks(updatedFile.getRemarks());
         existingFile.setDocumentPath(updatedFile.getDocumentPath());
 
+    
+
+// Preserve the volume and status fields
+existingFile.setVolume(updatedFile.getVolume());
+existingFile.setStatus(updatedFile.getStatus());
+
+
+
         return officeFileRepository.save(existingFile);
     }
 

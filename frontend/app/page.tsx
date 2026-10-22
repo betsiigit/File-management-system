@@ -212,7 +212,7 @@ const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
 
 
-  useEffect(() => {
+useEffect(() => {
   function handleHeaderAction(event: Event) {
     const customEvent = event as CustomEvent<{
       action: string;
@@ -241,6 +241,71 @@ const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     );
   };
 }, []);
+
+useEffect(() => {
+  async function loadFiles() {
+    try {
+      const response = await fetch(
+        "http://localhost:8081/api/office-files"
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to load files (${response.status})`);
+      }
+
+      const savedFiles = await response.json();
+
+const mappedFiles: OfficeFile[] = savedFiles.map(
+  (file: {
+    id: number;
+    referenceNumber: string;
+    title: string;
+    fileType: "Incoming" | "Outgoing";
+    registrationDate: string | null;
+    numberOfPages: number | null;
+    department: string | null;
+    assignedOfficer: string | null;
+    remarks: string | null;
+    volume: string | null;
+status: string | null;
+  }) => {
+    const existingFile = files.find(
+      (item) =>
+        item.reference.toLowerCase() ===
+        file.referenceNumber.toLowerCase()
+    );
+
+    return {
+      id: file.id,
+      reference: file.referenceNumber,
+       volume: file.volume ?? existingFile?.volume ?? "",
+      title: file.title,
+      department: file.department ?? "",
+      date: file.registrationDate ?? "",
+      outgoing_date: existingFile?.outgoing_date ?? "",
+      status: file.status ?? existingFile?.status ?? "Pending",
+      fileType: file.fileType,
+      pages: file.numberOfPages ?? 0,
+      assignedOfficer: file.assignedOfficer ?? "",
+      remarks: file.remarks ?? "",
+      attachmentNames: existingFile?.attachmentNames ?? [],
+    };
+  }
+);
+
+
+      setFiles(mappedFiles);
+    } catch (error) {
+      console.error("Failed to load office files:", error);
+      setNotice(
+        "Could not load files from the backend. Please check that the backend is running."
+      );
+    }
+  }
+
+  loadFiles();
+}, []);
+
   function handleNavigate(menu: string) {
     setActiveMenu(menu);
     setProfileView(null);
@@ -411,7 +476,9 @@ async function registerFile(data: RegisteredFileData) {
         numberOfPages: data.pages,
         department: data.department,
         assignedOfficer: data.assignedOfficer || null,
-        remarks: data.remarks || null,
+      remarks: data.remarks || null,
+volume: data.volume?.trim() || null,
+status: data.status || "Pending",
       }),
     });
 
