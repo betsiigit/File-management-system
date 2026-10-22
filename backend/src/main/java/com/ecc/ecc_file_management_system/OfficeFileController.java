@@ -1,6 +1,6 @@
 
 package com.ecc.ecc_file_management_system;
-
+import org.springframework.web.bind.annotation.CrossOrigin;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+@CrossOrigin(origins = "http://localhost:3000")
 @RestController
 @RequestMapping("/api/office-files")
 public class OfficeFileController {

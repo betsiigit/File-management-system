@@ -331,7 +331,7 @@ function handleImportExcel() {
           <tbody className="divide-y divide-[#ECEFF2]">
             {filteredFiles.map((file) => (
               <tr
-                key={file.id}
+                key={file.reference}
                 className="transition-colors duration-150 hover:bg-[#F8FAFB]"
               >
                 <td className="whitespace-nowrap px-5 py-4 font-semibold text-[#0A506E]">

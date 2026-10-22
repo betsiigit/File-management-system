@@ -384,7 +384,7 @@ function handleBulkAddEmployees() {
   setEmployeeNotice(`${newEmployees.length} employees added successfully.`);
 }
 
-function registerFile(data: RegisteredFileData) {
+async function registerFile(data: RegisteredFileData) {
   const duplicateReference = files.some(
     (file) =>
       file.reference.toLowerCase() === data.reference.toLowerCase()
@@ -395,34 +395,63 @@ function registerFile(data: RegisteredFileData) {
     return;
   }
 
-  const nextId =
-    files.length > 0
-      ? Math.max(...files.map((file) => file.id)) + 1
-      : 1;
+  try {
+    setNotice("Registering file...");
 
+    const response = await fetch("http://localhost:8081/api/office-files", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        referenceNumber: data.reference,
+        title: data.title,
+        fileType: data.fileType,
+        registrationDate: data.date,
+        numberOfPages: data.pages,
+        department: data.department,
+        assignedOfficer: data.assignedOfficer || null,
+        remarks: data.remarks || null,
+      }),
+    });
 
-const newFile: OfficeFile = {
-  id: nextId,
-  reference: data.reference,
-  volume: data.volume,
-  title: data.title,
-  department: data.department,
-  date: data.date,
-  outgoing_date: data.outgoing_date,
-  status: "Pending",
-  fileType: data.fileType,
-  pages: data.pages,
-  assignedOfficer: data.assignedOfficer,
-  remarks: data.remarks,
-  attachmentNames: data.attachments.map((file) => file.name),
-};
+    if (!response.ok) {
+      const message = await response.text();
+      throw new Error(message || `Request failed (${response.status})`);
+    }
 
+    const savedFile = await response.json();
 
-  setFiles((currentFiles) => [newFile, ...currentFiles]);
-  setShowForm(false);
-  setActiveMenu("Dashboard");
-  setNotice(`File "${newFile.title}" registered successfully.`);
+    const newFile: OfficeFile = {
+      id: savedFile.id,
+      reference: savedFile.referenceNumber,
+      volume: data.volume,
+      title: savedFile.title,
+      department: savedFile.department ?? "",
+      date: savedFile.registrationDate ?? data.date,
+      outgoing_date: data.outgoing_date,
+      status: "Pending",
+      fileType: savedFile.fileType,
+      pages: savedFile.numberOfPages,
+      assignedOfficer: savedFile.assignedOfficer ?? "",
+      remarks: savedFile.remarks ?? "",
+      attachmentNames: data.attachments.map((file) => file.name),
+    };
+
+    setFiles((currentFiles) => [newFile, ...currentFiles]);
+    setShowForm(false);
+    setActiveMenu("Dashboard");
+    setNotice(`File "${newFile.title}" registered successfully.`);
+  } catch (error) {
+    console.error("Failed to register office file:", error);
+    setNotice(
+      error instanceof Error
+        ? `Could not register file: ${error.message}`
+        : "Could not register file. Please try again."
+    );
+  }
 }
+
 
   return (
    
