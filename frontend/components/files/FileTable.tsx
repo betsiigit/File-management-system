@@ -106,45 +106,57 @@ const volumeFiles = useMemo(() => {
     .sort((a, b) => a.reference.localeCompare(b.reference));
 }, [files, volumeFilter, referenceSeriesFilter]);
 
+const availableReferenceGroups = useMemo(() => {
+  if (volumeFilter === "All") return [];
+
+  return [
+    ...new Set(
+      files
+        .filter((file) => file.volume === volumeFilter)
+        .map((file) => file.reference.trim().split("/")[0].trim())
+        .filter(Boolean)
+    ),
+  ].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+}, [files, volumeFilter]);
+
+const [selectedReferenceGroup, setSelectedReferenceGroup] =
+  useState("");
+
+useEffect(() => {
+  setSelectedReferenceGroup("");
+}, [volumeFilter]);
+
+const printVolumeFiles = useMemo(() => {
+  if (!selectedReferenceGroup || volumeFilter === "All") return [];
+
+  return files
+    .filter(
+      (file) =>
+        file.volume === volumeFilter &&
+        file.reference.trim().split("/")[0].trim() ===
+          selectedReferenceGroup
+    )
+    .sort((a, b) =>
+      a.reference.localeCompare(b.reference, undefined, {
+        numeric: true,
+      })
+    );
+}, [files, volumeFilter, selectedReferenceGroup]);
+
+
 
 function handlePrintVolume() {
   if (volumeFilter === "All") {
     alert("Please select a volume before printing.");
     return;
   }
+  if (!selectedReferenceGroup) {
+  alert("Please select a reference group before printing.");
+  return;
+}
 
   if (volumeFiles.length === 0) {
     alert("This volume has no records to print.");
-    return;
-  }
-
-  const sortedReferences = volumeFiles
-  .map((file) => file.reference.trim())
-  .filter(Boolean)
-  .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-
-const registrationDates = volumeFiles
-  .map((file) => file.date)
-  .filter((date): date is string => Boolean(date))
-  .sort((a, b) => a.localeCompare(b));
-
-const printDate = new Date().toLocaleDateString("en-GB", {
-  day: "2-digit",
-  month: "long",
-  year: "numeric",
-});
-
-const referenceFrom = sortedReferences[0] ?? "N/A";
-const referenceTo = sortedReferences[sortedReferences.length - 1] ?? "N/A";
-
-const registrationDateFrom = registrationDates[0] ?? "N/A";
-const registrationDateTo =
-  registrationDates[registrationDates.length - 1] ?? "N/A";
-
-  const printWindow = window.open("", "_blank", "width=1000,height=700");
-
-  if (!printWindow) {
-    alert("Please allow pop-ups for this website, then try again.");
     return;
   }
 
@@ -156,85 +168,193 @@ const registrationDateTo =
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
 
-  const rows = volumeFiles
-    .map(
-      (file, index) => `
-        <tr>
-          <td>${index + 1}</td>
-          <td>${escapeHtml(file.reference)}</td>
-          <td>${escapeHtml(file.outgoing_date || "")}</td>
-          <td>${escapeHtml(file.date || "")}</td>
-          <td>${escapeHtml(file.title)}</td>
-          <td>${escapeHtml(file.remarks || "")}</td>
-          <td>${file.attachmentNames?.length || 0}</td>
-        </tr>
-      `
-    )
+  // Group by the complete reference prefix before the first slash.
+  const groupedFiles = new Map<string, typeof volumeFiles>();
+
+  volumeFiles.forEach((file) => {
+    const reference = file.reference.trim();
+    const group = reference.split("/")[0].trim() || "Unknown";
+
+    if (!groupedFiles.has(group)) {
+      groupedFiles.set(group, []);
+    }
+
+    groupedFiles.get(group)!.push(file);
+  });
+
+  const printDate = new Date().toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  const sortedGroups = [...groupedFiles.entries()].sort(
+    ([a], [b]) => a.localeCompare(b, undefined, { numeric: true })
+  );
+
+  const printSections = sortedGroups
+    .map(([group, groupFiles]) => {
+      const sortedFiles = [...groupFiles].sort((a, b) =>
+        a.reference.localeCompare(b.reference, undefined, {
+          numeric: true,
+        })
+      );
+
+      const references = sortedFiles
+        .map((file) => file.reference.trim())
+        .filter(Boolean)
+        .sort((a, b) =>
+          a.localeCompare(b, undefined, { numeric: true })
+        );
+
+      // Sort registration dates chronologically.
+      const dates = sortedFiles
+        .map((file) => file.date)
+        .filter((date): date is string => Boolean(date))
+        .sort((a, b) => {
+          const timeA = new Date(a).getTime();
+          const timeB = new Date(b).getTime();
+
+          if (Number.isNaN(timeA) || Number.isNaN(timeB)) {
+            return a.localeCompare(b);
+          }
+
+          return timeA - timeB;
+        });
+
+      const referenceFrom = references[0] ?? "N/A";
+      const referenceTo = references[references.length - 1] ?? "N/A";
+      const dateFrom = dates[0] ?? "N/A";
+      const dateTo = dates[dates.length - 1] ?? "N/A";
+
+      const rows = sortedFiles
+        .map(
+          (file, index) => `
+            <tr>
+              <td>${index + 1}</td>
+              <td>${escapeHtml(file.reference)}</td>
+              <td>${escapeHtml(file.outgoing_date || "")}</td>
+              <td>${escapeHtml(file.date || "")}</td>
+              <td>${escapeHtml(file.title)}</td>
+              <td>${escapeHtml(file.remarks || "")}</td>
+              <td>${file.attachmentNames?.length || 0}</td>
+            </tr>
+          `
+        )
+        .join("");
+
+      return `
+        <section class="register">
+          <h2>OFFICE FILE REGISTER</h2>
+
+          <table>
+            <thead>
+              <tr>
+                <th colspan="7" class="register-title-row">
+                  Print Date: ${escapeHtml(printDate)}
+                  &nbsp; | &nbsp;
+                  Volume: ${escapeHtml(volumeFilter)}
+                  &nbsp; | &nbsp;
+                   ${escapeHtml(group)}
+                  &nbsp; | &nbsp;
+                  Ref. No.: ${escapeHtml(referenceFrom)} – ${escapeHtml(referenceTo)}
+                  &nbsp; | &nbsp;
+                  Registration Date: ${escapeHtml(dateFrom)} – ${escapeHtml(dateTo)}
+                </th>
+              </tr>
+              <tr>
+                <th>No.</th>
+                <th>Ref. No.</th>
+                <th>Outgoing Date</th>
+                <th>Date of Registration</th>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Bulk</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </section>
+      `;
+    })
     .join("");
 
+  const printWindow = window.open("", "_blank", "width=1200,height=800");
+
+  if (!printWindow) {
+    alert("Please allow pop-ups for this website, then try again.");
+    return;
+  }
+
+  printWindow.document.open();
   printWindow.document.write(`
     <!DOCTYPE html>
     <html>
       <head>
-       <body>
-  <h2>OFFICE FILE REGISTER</h2>
-
-
-
-<table>
+        <meta charset="UTF-8" />
+        <title>${escapeHtml(volumeFilter)} Register</title>
         <style>
           body {
             font-family: Arial, sans-serif;
             padding: 20px;
+            color: #111;
           }
+
           h2 {
             text-align: center;
+            margin-bottom: 14px;
           }
+
           table {
             width: 100%;
             border-collapse: collapse;
+            margin-bottom: 24px;
           }
+
           th, td {
             border: 1px solid #333;
             padding: 8px;
             text-align: left;
+            font-size: 11px;
           }
+
           th {
             background: #eee;
           }
+
+          .register-title-row {
+            text-align: left;
+            white-space: nowrap;
+            font-size: 10px;
+            font-weight: normal;
+            background: #fff;
+          }
+
+          .register {
+            margin-bottom: 32px;
+          }
+
           @media print {
-            body { padding: 0; }
+            body {
+              padding: 0;
+            }
+
+            .register {
+              break-after: page;
+            }
+
+            .register:last-child {
+              break-after: auto;
+            }
+
+            .register-title-row {
+              background: #fff;
+            }
           }
         </style>
       </head>
       <body>
-        
-        <table>
-          <thead>
-  <tr>
-    <th colspan="7" class="register-title-row">
-      ${escapeHtml(printDate)}
-      &nbsp; | &nbsp;
-       ${escapeHtml(volumeFilter)}
-      &nbsp; | &nbsp;
-      Ref. No.: ${escapeHtml(referenceFrom)} – ${escapeHtml(referenceTo)}
-      &nbsp; | &nbsp;
-      Registration Date: ${escapeHtml(registrationDateFrom)} – ${escapeHtml(registrationDateTo)}
-    </th>
-  </tr>
-  <tr>
-    <th>No.</th>
-    <th>Ref. No.</th>
-    <th>Outgoing Date</th>
-    <th>Date of Registration</th>
-    <th>Title</th>
-    <th>Description</th>
-    <th>Bulk</th>
-  </tr>
-</thead>
-<tbody>${rows}</tbody>
-          <tbody>${rows}</tbody>
-        </table>
+        ${printSections}
       </body>
     </html>
   `);
@@ -246,6 +366,7 @@ const registrationDateTo =
     printWindow.print();
   };
 }
+
 
 
 function handleExportExcel() {
@@ -364,10 +485,33 @@ function handleImportExcel() {
       </option>
     ))}
   </select>
+
+
+  <select
+  value={selectedReferenceGroup}
+  onChange={(e) => setSelectedReferenceGroup(e.target.value)}
+  disabled={
+    volumeFilter === "All" ||
+    availableReferenceGroups.length === 0
+  }
+  className="rounded-lg border border-gray-300 px-3 py-3 text-sm"
+>
+  <option value="">Select Reference </option>
+
+  {availableReferenceGroups.map((group) => (
+    <option key={group} value={group}>
+      {group}
+    </option>
+  ))}
+</select>
   <button
   type="button"
   onClick={handleExportExcel}
-  disabled={volumeFilter === "All"}
+ disabled={
+  volumeFilter === "All" ||
+  !selectedReferenceGroup ||
+  printVolumeFiles.length === 0
+}
   className="rounded-lg border border-[#0A506E] bg-white px-4 py-3 text-sm font-semibold text-[#0A506E] disabled:cursor-not-allowed disabled:opacity-50"
 >
   Export Excel
