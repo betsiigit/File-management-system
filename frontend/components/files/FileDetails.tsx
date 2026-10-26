@@ -42,6 +42,8 @@ export default function FileDetails({
       value: file.remarks || "No remarks",
     },
   
+
+
 {
   label: "Attachment",
   value: file.documentPath ? (
@@ -49,6 +51,35 @@ export default function FileDetails({
       href={`http://localhost:8081${file.documentPath}`}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={async (event) => {
+        event.preventDefault();
+
+        const newTab = window.open("about:blank", "_blank");
+
+        if (!newTab) {
+          alert("Please allow pop-ups for localhost.");
+          return;
+        }
+
+        try {
+          const response = await fetch(
+            `http://localhost:8081${file.documentPath}`
+          );
+
+          if (!response.ok) {
+            throw new Error("Could not load the PDF.");
+          }
+
+          const blob = await response.blob();
+          const pdfUrl = URL.createObjectURL(blob);
+
+          newTab.location.href = pdfUrl;
+        } catch (error) {
+          newTab.close();
+          alert("Could not open the PDF. Please try again.");
+          console.error(error);
+        }
+      }}
       className="text-[#0A506E] underline hover:text-[#087EA4]"
     >
       Open attached PDF
@@ -57,7 +88,6 @@ export default function FileDetails({
     file.attachmentNames?.join(", ") || "No attachment recorded"
   ),
 },
-
   ];
 
   return (
