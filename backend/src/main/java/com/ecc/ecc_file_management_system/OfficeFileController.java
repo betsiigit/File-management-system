@@ -1,6 +1,5 @@
 
 package com.ecc.ecc_file_management_system;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,9 +14,11 @@ import java.util.Map;
 public class OfficeFileController {
 
     private final OfficeFileService officeFileService;
+    private final OfficeFileAttachmentService attachmentService;
 
-    public OfficeFileController(OfficeFileService officeFileService) {
+    public OfficeFileController(OfficeFileService officeFileService, OfficeFileAttachmentService attachmentService) {
         this.officeFileService = officeFileService;
+        this.attachmentService = attachmentService;
     }
 
     // Register a new office file
@@ -41,7 +42,18 @@ public class OfficeFileController {
     public ResponseEntity<OfficeFile> getFileById(@PathVariable Long id) {
         return ResponseEntity.ok(officeFileService.getFileById(id));
     }
+// Get all attachments for one office file
+@GetMapping("/{id}/attachments")
+public ResponseEntity<List<OfficeFileAttachment>> getAttachments(
+        @PathVariable Long id) {
 
+    // Verify that the office file exists.
+    officeFileService.getFileById(id);
+
+    return ResponseEntity.ok(
+        attachmentService.getAttachments(id)
+    );
+}
     // Search by reference number
     @GetMapping("/reference/{referenceNumber}")
     public ResponseEntity<OfficeFile> getFileByReferenceNumber(

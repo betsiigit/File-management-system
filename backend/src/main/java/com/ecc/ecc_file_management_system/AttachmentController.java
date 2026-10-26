@@ -17,24 +17,30 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-
+import java.util.Map;
 @RestController
 @RequestMapping("/api/attachments")
 @CrossOrigin(origins = "http://localhost:3000")
 public class AttachmentController {
 
-    private final Path uploadPath;
+   private final Path uploadPath;
+private final OfficeFileService officeFileService;
+private final OfficeFileAttachmentService attachmentService;
+public AttachmentController(
+        @Value("${file.upload-dir:uploads}") String uploadDir,
+        OfficeFileService officeFileService,
+        OfficeFileAttachmentService attachmentService)
+        throws IOException {
 
-    public AttachmentController(
-            @Value("${file.upload-dir:uploads}") String uploadDir)
-            throws IOException {
+    this.uploadPath = Paths.get(uploadDir)
+            .toAbsolutePath()
+            .normalize();
 
-        this.uploadPath = Paths.get(uploadDir)
-                .toAbsolutePath()
-                .normalize();
+    Files.createDirectories(this.uploadPath);
 
-        Files.createDirectories(this.uploadPath);
-    }
+    this.officeFileService = officeFileService;
+    this.attachmentService = attachmentService;
+}
 
     @PostMapping
     public ResponseEntity<List<String>> uploadFiles(
@@ -68,12 +74,65 @@ public class AttachmentController {
             }
 
             file.transferTo(destination);
-            savedPaths.add("/api/attachments/" + storedName);
+           savedPaths.add("/api/attachments/" + storedName);
         }
 
         return ResponseEntity.ok(savedPaths);
     }
+@PostMapping("/office-file/{officeFileId}")
+public ResponseEntity<List<Map<String, Object>>> uploadOfficeFileAttachments(
+        @PathVariable Long officeFileId,
+        @RequestParam("files") List<MultipartFile> files)
+        throws IOException {
 
+    if (files == null || files.isEmpty()) {
+        return ResponseEntity.badRequest().build();
+    }
+
+    OfficeFile officeFile = officeFileService.getFileById(officeFileId);
+
+    List<Map<String, Object>> savedAttachments = new ArrayList<>();
+
+    for (MultipartFile file : files) {
+        if (file.isEmpty()) {
+            continue;
+        }
+
+        String originalName = file.getOriginalFilename();
+
+        if (originalName == null
+                || !originalName.toLowerCase().endsWith(".pdf")
+                || !"application/pdf".equalsIgnoreCase(file.getContentType())) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        String storedName = UUID.randomUUID() + ".pdf";
+        Path destination = uploadPath.resolve(storedName).normalize();
+
+        if (!destination.startsWith(uploadPath)) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        file.transferTo(destination);
+
+        String documentPath = "/api/attachments/" + storedName;
+
+        OfficeFileAttachment savedAttachment =
+                attachmentService.saveAttachment(
+                        officeFile,
+                        originalName,
+                        documentPath
+                );
+
+        savedAttachments.add(Map.of(
+                "id", savedAttachment.getId(),
+                "fileName", savedAttachment.getFileName(),
+                "documentPath", savedAttachment.getDocumentPath()
+        ));
+    }
+
+    return ResponseEntity.ok(savedAttachments);
+}
     @GetMapping("/{filename:.+}")
     public ResponseEntity<Resource> getFile(
             @PathVariable String filename) throws IOException {

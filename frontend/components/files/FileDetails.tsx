@@ -1,7 +1,15 @@
 
 "use client";
+"use client";
 
+import { useEffect, useState } from "react";
 import type { OfficeFile } from "./FileTable";
+
+type OfficeFileAttachment = {
+  id: number;
+  fileName: string;
+  documentPath: string;
+};
 
 type FileDetailsProps = {
   file: OfficeFile;
@@ -17,6 +25,57 @@ export default function FileDetails({
   function handlePrint() {
     window.print();
   }
+
+  
+const [attachments, setAttachments] = useState<OfficeFileAttachment[]>([]);
+const [attachmentsLoaded, setAttachmentsLoaded] = useState(false);
+
+useEffect(() => {
+  let cancelled = false;
+
+  setAttachments([]);
+  setAttachmentsLoaded(false);
+
+  fetch(`http://localhost:8081/api/office-files/${file.id}/attachments`)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Failed to load attachments.");
+      }
+
+      return response.json();
+    })
+    .then((data: OfficeFileAttachment[]) => {
+      if (!cancelled) {
+        setAttachments(data);
+        setAttachmentsLoaded(true);
+      }
+    })
+    .catch((error) => {
+      console.error("Failed to load attachments:", error);
+
+      if (!cancelled) {
+        setAttachmentsLoaded(true);
+      }
+    });
+
+  return () => {
+    cancelled = true;
+  };
+}, [file.id]);
+
+const attachmentItems: OfficeFileAttachment[] =
+  attachments.length > 0
+    ? attachments
+    : file.documentPath
+      ? [
+          {
+            id: -1,
+            fileName: file.attachmentNames?.[0] || "Attached PDF",
+            documentPath: file.documentPath,
+          },
+        ]
+      : [];
+
 
   const detailRows = [
     { label: "File Type", value: file.fileType || "Not recorded" },
@@ -44,50 +103,32 @@ export default function FileDetails({
   
 
 
+
 {
-  label: "Attachment",
-  value: file.documentPath ? (
-    <a
-      href={`http://localhost:8081${file.documentPath}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={async (event) => {
-        event.preventDefault();
-
-        const newTab = window.open("about:blank", "_blank");
-
-        if (!newTab) {
-          alert("Please allow pop-ups for localhost.");
-          return;
-        }
-
-        try {
-          const response = await fetch(
-            `http://localhost:8081${file.documentPath}`
-          );
-
-          if (!response.ok) {
-            throw new Error("Could not load the PDF.");
-          }
-
-          const blob = await response.blob();
-          const pdfUrl = URL.createObjectURL(blob);
-
-          newTab.location.href = pdfUrl;
-        } catch (error) {
-          newTab.close();
-          alert("Could not open the PDF. Please try again.");
-          console.error(error);
-        }
-      }}
-      className="text-[#0A506E] underline hover:text-[#087EA4]"
-    >
-      Open attached PDF
-    </a>
+  label: "Attachments",
+  value: !attachmentsLoaded ? (
+    <span>Loading attachments...</span>
+  ) : attachmentItems.length > 0 ? (
+    <div className="flex flex-col items-start gap-2">
+      {attachmentItems.map((attachment) => (
+        <a
+          key={attachment.id}
+          href={`http://localhost:8081${attachment.documentPath}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#0A506E] underline hover:text-[#087EA4]"
+        >
+          {attachment.fileName || "Open attached PDF"}
+        </a>
+      ))}
+    </div>
+  ) : file.attachmentNames?.length ? (
+    <span>{file.attachmentNames.join(", ")}</span>
   ) : (
-    file.attachmentNames?.join(", ") || "No attachment recorded"
+    <span>No attachment recorded</span>
   ),
 },
+
   ];
 
   return (

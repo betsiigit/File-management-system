@@ -247,6 +247,7 @@ useEffect(() => {
     try {
       const response = await fetch(
         "http://localhost:8081/api/office-files"
+        
       );
 
       if (!response.ok) {
@@ -468,25 +469,25 @@ async function registerFile(data: RegisteredFileData) {
 
 let documentPath: string | null = null;
 
-if (data.attachments.length > 0) {
-  const uploadForm = new FormData();
-  uploadForm.append("files", data.attachments[0]);
+// if (data.attachments.length > 0) {
+//   const uploadForm = new FormData();
+//   uploadForm.append("files", data.attachments[0]);
 
-  const uploadResponse = await fetch(
-    "http://localhost:8081/api/attachments",
-    {
-      method: "POST",
-      body: uploadForm,
-    }
-  );
+//   const uploadResponse = await fetch(
+//     "http://localhost:8081/api/attachments",
+//     {
+//       method: "POST",
+//       body: uploadForm,
+//     }
+//   );
 
-  if (!uploadResponse.ok) {
-    throw new Error("Failed to upload the PDF attachment.");
-  }
+//   if (!uploadResponse.ok) {
+//     throw new Error("Failed to upload the PDF attachment.");
+//   }
 
-  const uploadedPaths: string[] = await uploadResponse.json();
-  documentPath = uploadedPaths[0] ?? null;
-}
+//   const uploadedPaths: string[] = await uploadResponse.json();
+//   documentPath = uploadedPaths[0] ?? null;
+// }
 
 const response = await fetch(
   "http://localhost:8081/api/office-files",
@@ -506,7 +507,7 @@ const response = await fetch(
       remarks: data.remarks || null,
       volume: data.volume?.trim() || null,
       status: data.status || "Pending",
-      documentPath,
+      documentPath: null,
     }),
   }
 );
@@ -519,26 +520,64 @@ const response = await fetch(
 
     const savedFile = await response.json();
 
-    const newFile: OfficeFile = {
-      id: savedFile.id,
-      reference: savedFile.referenceNumber,
-      volume: data.volume,
-      title: savedFile.title,
-      department: savedFile.department ?? "",
-      date: savedFile.registrationDate ?? data.date,
-      outgoing_date: data.outgoing_date,
-      status: "Pending",
-      fileType: savedFile.fileType,
-      pages: savedFile.numberOfPages,
-      assignedOfficer: savedFile.assignedOfficer ?? "",
-      remarks: savedFile.remarks ?? "",
-      attachmentNames: data.attachments.map((file) => file.name),
-    };
+let uploadedAttachments: {
+  id: number;
+  fileName: string;
+  documentPath: string;
+}[] = [];
 
+let attachmentUploadFailed = false;
+
+if (data.attachments.length > 0) {
+  const uploadForm = new FormData();
+
+  data.attachments.forEach((file) => {
+    uploadForm.append("files", file);
+  });
+
+  try {
+    const uploadResponse = await fetch(
+      `http://localhost:8081/api/attachments/office-file/${savedFile.id}`,
+      {
+        method: "POST",
+        body: uploadForm,
+      }
+    );
+
+    if (!uploadResponse.ok) {
+      throw new Error("Attachment upload failed.");
+    }
+
+    uploadedAttachments = await uploadResponse.json();
+  } catch (error) {
+    console.error("Failed to upload attachments:", error);
+    attachmentUploadFailed = true;
+  }
+}
+
+  const newFile: OfficeFile = {
+  id: savedFile.id,
+  reference: savedFile.referenceNumber,
+  volume: data.volume,
+  title: savedFile.title,
+  department: savedFile.department ?? "",
+  date: savedFile.registrationDate ?? data.date,
+  outgoing_date: data.outgoing_date,
+  status: "Pending",
+  fileType: savedFile.fileType,
+  pages: savedFile.numberOfPages,
+  assignedOfficer: savedFile.assignedOfficer ?? "",
+  remarks: savedFile.remarks ?? "",
+  attachmentNames: data.attachments.map((file) => file.name),
+};
     setFiles((currentFiles) => [newFile, ...currentFiles]);
     setShowForm(false);
     setActiveMenu("Dashboard");
-    setNotice(`File "${newFile.title}" registered successfully.`);
+   setNotice(
+  attachmentUploadFailed
+    ? `File "${newFile.title}" registered, but its attachments could not all be uploaded.`
+    : `File "${newFile.title}" registered successfully.`
+);
   } catch (error) {
     console.error("Failed to register office file:", error);
     setNotice(
