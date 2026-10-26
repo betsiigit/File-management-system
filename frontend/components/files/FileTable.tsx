@@ -1,8 +1,11 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState,useEffect } from "react";
 import * as XLSX from "xlsx";
+
+
+
 
 export type OfficeFile = {
   id: number;
@@ -73,16 +76,35 @@ const volumes = useMemo(
 );
 
 
+const referenceSeries = (reference: string) =>
+  reference.trim().split("/")[0].trim();
+
+const availableReferenceSeries = useMemo(() => {
+  return [
+    ...new Set(
+      files
+        .filter((file) => file.volume === volumeFilter)
+        .map((file) => referenceSeries(file.reference))
+        .filter(Boolean)
+    ),
+  ].sort((a, b) => a.localeCompare(b));
+}, [files, volumeFilter]);
+
+const [referenceSeriesFilter, setReferenceSeriesFilter] = useState("All");
+useEffect(() => {
+  setReferenceSeriesFilter("All");
+}, [volumeFilter]);
 
 const volumeFiles = useMemo(() => {
   return files
     .filter(
       (file) =>
-        volumeFilter === "All" || file.volume === volumeFilter
+        file.volume === volumeFilter &&
+        (referenceSeriesFilter === "All" ||
+          referenceSeries(file.reference) === referenceSeriesFilter)
     )
-    .sort((a, b) => b.id - a.id);
-}, [files, volumeFilter]);
-
+    .sort((a, b) => a.reference.localeCompare(b.reference));
+}, [files, volumeFilter, referenceSeriesFilter]);
 
 
 function handlePrintVolume() {
@@ -95,6 +117,29 @@ function handlePrintVolume() {
     alert("This volume has no records to print.");
     return;
   }
+
+  const sortedReferences = volumeFiles
+  .map((file) => file.reference.trim())
+  .filter(Boolean)
+  .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+const registrationDates = volumeFiles
+  .map((file) => file.date)
+  .filter((date): date is string => Boolean(date))
+  .sort((a, b) => a.localeCompare(b));
+
+const printDate = new Date().toLocaleDateString("en-GB", {
+  day: "2-digit",
+  month: "long",
+  year: "numeric",
+});
+
+const referenceFrom = sortedReferences[0] ?? "N/A";
+const referenceTo = sortedReferences[sortedReferences.length - 1] ?? "N/A";
+
+const registrationDateFrom = registrationDates[0] ?? "N/A";
+const registrationDateTo =
+  registrationDates[registrationDates.length - 1] ?? "N/A";
 
   const printWindow = window.open("", "_blank", "width=1000,height=700");
 
@@ -131,7 +176,12 @@ function handlePrintVolume() {
     <!DOCTYPE html>
     <html>
       <head>
-        <title>${escapeHtml(volumeFilter)} Register</title>
+       <body>
+  <h2>OFFICE FILE REGISTER</h2>
+
+
+
+<table>
         <style>
           body {
             font-family: Arial, sans-serif;
@@ -158,19 +208,31 @@ function handlePrintVolume() {
         </style>
       </head>
       <body>
-        <h2>${escapeHtml(volumeFilter)} Register</h2>
+        
         <table>
           <thead>
-            <tr>
-              <th>No.</th>
-              <th>Ref. No.</th>
-              <th>Outgoing Date</th>
-              <th>Date of Registration</th>
-              <th>Title</th>
-              <th>Description</th>
-              <th>Bulk</th>
-            </tr>
-          </thead>
+  <tr>
+    <th colspan="7" class="register-title-row">
+      ${escapeHtml(printDate)}
+      &nbsp; | &nbsp;
+       ${escapeHtml(volumeFilter)}
+      &nbsp; | &nbsp;
+      Ref. No.: ${escapeHtml(referenceFrom)} – ${escapeHtml(referenceTo)}
+      &nbsp; | &nbsp;
+      Registration Date: ${escapeHtml(registrationDateFrom)} – ${escapeHtml(registrationDateTo)}
+    </th>
+  </tr>
+  <tr>
+    <th>No.</th>
+    <th>Ref. No.</th>
+    <th>Outgoing Date</th>
+    <th>Date of Registration</th>
+    <th>Title</th>
+    <th>Description</th>
+    <th>Bulk</th>
+  </tr>
+</thead>
+<tbody>${rows}</tbody>
           <tbody>${rows}</tbody>
         </table>
       </body>
