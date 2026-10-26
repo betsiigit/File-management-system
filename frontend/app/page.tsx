@@ -243,70 +243,116 @@ useEffect(() => {
 }, []);
 
 useEffect(() => {
-  async function loadFiles() {
-    try {
-      const response = await fetch(
-        "http://localhost:8081/api/office-files"
-        
-      );
-
-      if (!response.ok) {
-        throw new Error(`Failed to load files (${response.status})`);
-      }
-
-      const savedFiles = await response.json();
-
-const mappedFiles: OfficeFile[] = savedFiles.map(
-  (file: {
-    id: number;
-    referenceNumber: string;
-    title: string;
-    fileType: "Incoming" | "Outgoing";
-    registrationDate: string | null;
-    outgoingDate: string | null;
-    numberOfPages: number | null;
-    department: string | null;
-    assignedOfficer: string | null;
-    remarks: string | null;
-    volume: string | null;
-status: string | null;
-documentPath: string | null;
-  }) => {
-    const existingFile = files.find(
-      (item) =>
-        item.reference.toLowerCase() ===
-        file.referenceNumber.toLowerCase()
+  
+async function loadFiles() {
+  try {
+    const response = await fetch(
+      "http://localhost:8081/api/office-files"
     );
 
-    return {
-      id: file.id,
-      reference: file.referenceNumber,
-      
-       volume: file.volume ?? existingFile?.volume ?? "",
-      title: file.title,
-      department: file.department ?? "",
-      date: file.registrationDate ?? "",
-      outgoing_date: file.outgoingDate ?? existingFile?.outgoing_date ?? "",
-      status: file.status ?? existingFile?.status ?? "Pending",
-      fileType: file.fileType,
-      pages: file.numberOfPages ?? 0,
-      assignedOfficer: file.assignedOfficer ?? "",
-      remarks: file.remarks ?? "",
-      attachmentNames: existingFile?.attachmentNames ?? [],
-      documentPath: file.documentPath ?? "",
-    };
-  }
-);
-
-
-      setFiles(mappedFiles);
-    } catch (error) {
-      console.error("Failed to load office files:", error);
-      setNotice(
-        "Could not load files from the backend. Please check that the backend is running."
-      );
+    if (!response.ok) {
+      throw new Error(`Failed to load files (${response.status})`);
     }
+
+    const savedFiles = await response.json();
+
+    const mappedFiles: OfficeFile[] = await Promise.all(
+      savedFiles.map(
+        async (file: {
+          id: number;
+          referenceNumber: string;
+          title: string;
+          fileType: "Incoming" | "Outgoing";
+          registrationDate: string | null;
+          outgoingDate: string | null;
+          numberOfPages: number | null;
+          department: string | null;
+          assignedOfficer: string | null;
+          remarks: string | null;
+          volume: string | null;
+          status: string | null;
+          documentPath: string | null;
+        }) => {
+          const existingFile = files.find(
+            (item) => item.id === file.id
+          );
+
+          let attachmentNames: string[] = [];
+
+          try {
+            const attachmentResponse = await fetch(
+              `http://localhost:8081/api/office-files/${file.id}/attachments`
+            );
+
+            if (attachmentResponse.ok) {
+              const attachments = await attachmentResponse.json();
+
+              if (Array.isArray(attachments)) {
+                attachmentNames = attachments
+                  .map(
+                    (attachment: {
+                      fileName?: string;
+                      filename?: string;
+                      originalFilename?: string;
+                    }) =>
+                      attachment.fileName ??
+                      attachment.originalFilename ??
+                      attachment.filename
+                  )
+                  .filter(
+                    (name: string | undefined): name is string =>
+                      Boolean(name)
+                  );
+              }
+            }
+          } catch (attachmentError) {
+            console.error(
+              `Could not load attachments for file ${file.id}:`,
+              attachmentError
+            );
+          }
+
+          // Preserve the legacy single-document attachment if present.
+          if (
+            attachmentNames.length === 0 &&
+            file.documentPath
+          ) {
+            attachmentNames = [
+              file.documentPath.split(/[\\/]/).pop() || file.documentPath,
+            ];
+          }
+
+          return {
+            id: file.id,
+            reference: file.referenceNumber,
+            volume: file.volume ?? existingFile?.volume ?? "",
+            title: file.title,
+            department: file.department ?? "",
+            date: file.registrationDate ?? "",
+            outgoing_date:
+              file.outgoingDate ?? existingFile?.outgoing_date ?? "",
+            status:
+              file.status ?? existingFile?.status ?? "Pending",
+            fileType: file.fileType,
+            pages: file.numberOfPages ?? 0,
+            assignedOfficer: file.assignedOfficer ?? "",
+            remarks: file.remarks ?? "",
+            attachmentNames,
+            documentPath: file.documentPath ?? "",
+          };
+        }
+      )
+    );
+
+    setFiles(mappedFiles);
+  } catch (error) {
+    console.error("Failed to load office files:", error);
+    setNotice(
+      "Could not load files from the backend. Please check that the backend is running."
+    );
   }
+}
+
 
   loadFiles();
 }, []);
