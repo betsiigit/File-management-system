@@ -52,6 +52,9 @@ private String status = "Pending";
     @Column(name = "assigned_officer")
     private String assignedOfficer;
 
+    @Column(name = "outgoing_date")
+private LocalDate outgoingDate;
+
     @Column(length = 2000)
     private String remarks;
 
@@ -143,6 +146,14 @@ public void setStatus(String status) {
     public void setAssignedOfficer(String assignedOfficer) {
         this.assignedOfficer = assignedOfficer;
     }
+
+    public LocalDate getOutgoingDate() {
+    return outgoingDate;
+}
+
+public void setOutgoingDate(LocalDate outgoingDate) {
+    this.outgoingDate = outgoingDate;
+}
 
     public String getRemarks() {
         return remarks;

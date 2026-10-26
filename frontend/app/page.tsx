@@ -263,6 +263,7 @@ const mappedFiles: OfficeFile[] = savedFiles.map(
     title: string;
     fileType: "Incoming" | "Outgoing";
     registrationDate: string | null;
+    outgoingDate: string | null;
     numberOfPages: number | null;
     department: string | null;
     assignedOfficer: string | null;
@@ -285,7 +286,7 @@ documentPath: string | null;
       title: file.title,
       department: file.department ?? "",
       date: file.registrationDate ?? "",
-      outgoing_date: existingFile?.outgoing_date ?? "",
+      outgoing_date: file.outgoingDate ?? existingFile?.outgoing_date ?? "",
       status: file.status ?? existingFile?.status ?? "Pending",
       fileType: file.fileType,
       pages: file.numberOfPages ?? 0,
@@ -501,6 +502,7 @@ const response = await fetch(
       title: data.title,
       fileType: data.fileType,
       registrationDate: data.date,
+      outgoingDate: data.outgoing_date || null,
       numberOfPages: data.pages,
       department: data.department,
       assignedOfficer: data.assignedOfficer || null,
