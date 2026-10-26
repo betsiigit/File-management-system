@@ -128,6 +128,7 @@ public class OfficeFileService {
         existingFile.setTitle(updatedFile.getTitle().trim());
         existingFile.setFileType(updatedFile.getFileType().trim());
         existingFile.setRegistrationDate(updatedFile.getRegistrationDate());
+        existingFile.setOutgoingDate(updatedFile.getOutgoingDate());
         existingFile.setNumberOfPages(updatedFile.getNumberOfPages());
         existingFile.setDepartment(updatedFile.getDepartment());
         existingFile.setAssignedOfficer(updatedFile.getAssignedOfficer());
