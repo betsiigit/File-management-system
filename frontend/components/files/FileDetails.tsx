@@ -109,19 +109,19 @@ const attachmentItems: OfficeFileAttachment[] =
   value: !attachmentsLoaded ? (
     <span>Loading attachments...</span>
   ) : attachmentItems.length > 0 ? (
-    <div className="flex flex-col items-start gap-2">
-      {attachmentItems.map((attachment) => (
-        <a
-          key={attachment.id}
-          href={`http://localhost:8081${attachment.documentPath}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[#0A506E] underline hover:text-[#087EA4]"
-        >
-          {attachment.fileName || "Open attached PDF"}
-        </a>
-      ))}
-    </div>
+    <span className="flex flex-col items-start gap-2">
+  {attachmentItems.map((attachment) => (
+    <a
+      key={attachment.id}
+      href={`http://localhost:8081${attachment.documentPath}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-[#0A506E] underline hover:text-[#087EA4]"
+    >
+      {attachment.fileName || "Open attached PDF"}
+    </a>
+  ))}
+</span>
   ) : file.attachmentNames?.length ? (
     <span>{file.attachmentNames.join(", ")}</span>
   ) : (
