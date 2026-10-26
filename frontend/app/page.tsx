@@ -1202,17 +1202,37 @@ activeMenu !== "About" &&
             </button>
           </div>
 
-          {selectedFile ? (
-            <FileDetails
-              file={selectedFile}
-              onBack={() => setSelectedFile(null)}
-            />
-          ) : (
-            <FileTable
-              files={files}
-              onViewFile={setSelectedFile}
-            />
-          )}
+          
+{selectedFile ? (
+  <FileDetails
+    file={selectedFile}
+    onBack={() => setSelectedFile(null)}
+    onFileUpdated={(updatedFile) => {
+      setFiles((currentFiles) =>
+        currentFiles.map((currentFile) =>
+          currentFile.id === updatedFile.id
+            ? { ...currentFile, ...updatedFile }
+            : currentFile
+        )
+      );
+      setSelectedFile(updatedFile);
+      setNotice("File updated successfully.");
+    }}
+    onFileDeleted={(deletedId) => {
+      setFiles((currentFiles) =>
+        currentFiles.filter((currentFile) => currentFile.id !== deletedId)
+      );
+      setSelectedFile(null);
+      setNotice("File deleted successfully.");
+    }}
+  />
+) : (
+  <FileTable
+    files={files}
+    onViewFile={setSelectedFile}
+  />
+)}
+
         </>
       )}
 
