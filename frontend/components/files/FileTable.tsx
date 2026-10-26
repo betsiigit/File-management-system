@@ -73,11 +73,16 @@ const volumes = useMemo(
 );
 
 
+
 const volumeFiles = useMemo(() => {
   return files
-    .filter((file) => volumeFilter === "All" || file.volume === volumeFilter)
-    .sort((a, b) => a.reference.localeCompare(b.reference));
+    .filter(
+      (file) =>
+        volumeFilter === "All" || file.volume === volumeFilter
+    )
+    .sort((a, b) => b.id - a.id);
 }, [files, volumeFilter]);
+
 
 
 function handlePrintVolume() {

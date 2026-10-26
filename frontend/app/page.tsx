@@ -344,7 +344,7 @@ async function loadFiles() {
       )
     );
 
-    setFiles(mappedFiles);
+    setFiles([...mappedFiles].sort((a, b) => b.id - a.id));
   } catch (error) {
     console.error("Failed to load office files:", error);
     setNotice(
