@@ -24,23 +24,54 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  function handleLogin(event: FormEvent<HTMLFormElement>) {
+  async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
 
-    if (!email.trim() || !password.trim()) {
+    if (!email.trim() || !password) {
       setError("Please enter your email and password.");
       return;
     }
 
     setLoading(true);
 
-    // DEMO ONLY: This does not authenticate a real account.
-    window.setTimeout(() => {
-      setLoading(false);
+    try {
+      const response = await fetch("http://localhost:8081/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Invalid email or password.");
+        }
+
+        throw new Error(
+          `Login failed (${response.status}). Please try again.`,
+        );
+      }
+
+      await response.json();
+
       router.push("/");
-    }, 500);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to connect to the server. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
   }
+
 
   return (
     <main className="min-h-screen bg-[#214D6C] p-3 text-[#292D32] sm:p-6 lg:flex lg:items-center lg:justify-center lg:p-8">
