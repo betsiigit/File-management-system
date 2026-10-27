@@ -1,132 +1,127 @@
 
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 
-type Role = "hr_manager" | "admin";
-
-type Permissions = {
-  registerDocs: boolean;
-  deleteDocs: boolean;
-  manageUsers: boolean;
-  editDocs: boolean;
-  manageOfficers: boolean;
-};
+type Role = "ADMIN" | "REGISTRAR" | "OFFICER" | "VIEWER";
 
 type User = {
   id: number;
-  username: string;
   fullName: string;
+  email: string;
   role: Role;
-  permissions: Permissions;
+  active: boolean;
 };
 
-const permissionOptions: {
-  key: keyof Permissions;
-  label: string;
-  description: string;
-}[] = [
-  {
-    key: "registerDocs",
-    label: "Register Documents",
-    description: "Files, jobs, letters, transfers",
-  },
-  {
-    key: "deleteDocs",
-    label: "Delete Documents",
-    description: "Jobs, letters, transfers, employees",
-  },
-  {
-    key: "manageUsers",
-    label: "Manage Users",
-    description: "Create, edit, delete",
-  },
-  {
-    key: "editDocs",
-    label: "Edit Documents",
-    description: "Return files, edit entries",
-  },
-  {
-    key: "manageOfficers",
-    label: "Manage Officers",
-    description: "Register, edit, delete",
-  },
-];
+const roleLabels: Record<Role, string> = {
+  ADMIN: "Admin",
+  REGISTRAR: "Registrar",
+  OFFICER: "Officer",
+  VIEWER: "Viewer",
+};
+
+const inputClass =
+  "w-full rounded-lg border border-[#D6E2E8] bg-white px-3 py-3 text-sm text-[#292D32] outline-none transition-colors placeholder:text-[#9298A1] focus:border-[#0A506E] focus:ring-2 focus:ring-[#0A506E]/10";
 
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
-  const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<Role>("hr_manager");
-  const [permissions, setPermissions] = useState<Permissions>({
-    registerDocs: false,
-    deleteDocs: false,
-    manageUsers: false,
-    editDocs: false,
-    manageOfficers: false,
-  });
+  const [role, setRole] = useState<Role>("OFFICER");
   const [notice, setNotice] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  function createUser(event: FormEvent<HTMLFormElement>) {
+  const loadUsers = useCallback(async () => {
+    setLoading(true);
+
+    try {
+      const response = await fetch("http://localhost:8081/api/users", {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          response.status === 401 || response.status === 403
+            ? "You must be logged in as an Admin to manage users."
+            : `Could not load users (${response.status}).`,
+        );
+      }
+
+      const data: User[] = await response.json();
+      setUsers(data);
+    } catch (error) {
+      setNotice(
+        error instanceof Error
+          ? error.message
+          : "Unable to connect to the backend.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadUsers();
+  }, [loadUsers]);
+
+  async function createUser(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setNotice("");
 
-    if (
-      users.some(
-        (user) =>
-          user.username.toLowerCase() === username.trim().toLowerCase()
-      )
-    ) {
-      setNotice("That username already exists.");
+    if (password.length < 12) {
+      setNotice("Password must contain at least 12 characters.");
       return;
     }
 
-    if (password.length < 8) {
-      setNotice("Password must contain at least 8 characters.");
-      return;
+    setSaving(true);
+
+    try {
+      const response = await fetch("http://localhost:8081/api/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          fullName: fullName.trim(),
+          email: email.trim(),
+          password,
+          role,
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(
+          result?.message ?? `Could not create user (${response.status}).`,
+        );
+      }
+
+      const savedUser = result as User;
+
+      setUsers((current) => [
+        ...current.filter((user) => user.id !== savedUser.id),
+        savedUser,
+      ].sort((a, b) => a.id - b.id));
+
+      setFullName("");
+      setEmail("");
+      setPassword("");
+      setRole("OFFICER");
+      setNotice("User created successfully and saved to the database.");
+    } catch (error) {
+      setNotice(
+        error instanceof Error
+          ? error.message
+          : "Unable to create user. Please try again.",
+      );
+    } finally {
+      setSaving(false);
     }
-
-    const newUser: User = {
-      id: users.length
-        ? Math.max(...users.map((user) => user.id)) + 1
-        : 1,
-      username: username.trim(),
-      fullName: fullName.trim(),
-      role,
-      permissions:
-        role === "admin"
-          ? {
-              registerDocs: true,
-              deleteDocs: true,
-              manageUsers: true,
-              editDocs: true,
-              manageOfficers: true,
-            }
-          : { ...permissions },
-    };
-
-    setUsers((current) => [...current, newUser]);
-    setUsername("");
-    setFullName("");
-    setPassword("");
-    setRole("hr_manager");
-    setPermissions({
-      registerDocs: false,
-      deleteDocs: false,
-      manageUsers: false,
-      editDocs: false,
-      manageOfficers: false,
-    });
-    setNotice("User created successfully.");
   }
-
-  function deleteUser(id: number) {
-    setUsers((current) => current.filter((user) => user.id !== id));
-    setNotice("User removed from this demo.");
-  }
-
-  const inputClass =
-    "w-full rounded-lg border border-[#D6E2E8] bg-white px-3 py-3 text-sm text-[#292D32] outline-none transition-colors duration-200 placeholder:text-[#9298A1] focus:border-[#0A506E] focus:ring-2 focus:ring-[#0A506E]/10";
 
   return (
     <div className="space-y-6">
@@ -135,37 +130,20 @@ export default function UserManagement() {
           User Management
         </h3>
         <p className="mt-1 text-sm text-[#737B86]">
-          Create users and configure their system permissions.
+          Create accounts and manage system users.
         </p>
       </div>
 
-      {/* Create user form */}
       <div className="overflow-hidden rounded-xl border border-[#ECEFF2] bg-white shadow-sm">
         <div className="border-b border-[#ECEFF2] p-5">
-          <h4 className="font-bold text-[#292D32]">
-            Create New User
-          </h4>
+          <h4 className="font-bold text-[#292D32]">Create New User</h4>
           <p className="mt-1 text-sm text-[#737B86]">
-            Complete the fields and select the permissions for this user.
+            Complete the fields to create a new account.
           </p>
         </div>
 
         <form onSubmit={createUser} className="space-y-5 p-5">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <label htmlFor="new-username" className="mb-2 block text-sm font-medium text-[#454B54]">
-                Username *
-              </label>
-              <input
-                id="new-username"
-                required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter username"
-                className={inputClass}
-              />
-            </div>
-
             <div>
               <label htmlFor="new-full-name" className="mb-2 block text-sm font-medium text-[#454B54]">
                 Full Name *
@@ -181,17 +159,32 @@ export default function UserManagement() {
             </div>
 
             <div>
+              <label htmlFor="new-email" className="mb-2 block text-sm font-medium text-[#454B54]">
+                Email *
+              </label>
+              <input
+                id="new-email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="user@example.com"
+                className={inputClass}
+              />
+            </div>
+
+            <div>
               <label htmlFor="new-password" className="mb-2 block text-sm font-medium text-[#454B54]">
                 Password *
               </label>
               <input
                 id="new-password"
-                required
                 type="password"
-                minLength={8}
+                required
+                minLength={12}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Minimum 8 characters"
+                placeholder="At least 12 characters"
                 className={inputClass}
               />
             </div>
@@ -206,70 +199,19 @@ export default function UserManagement() {
                 onChange={(e) => setRole(e.target.value as Role)}
                 className={inputClass}
               >
-                <option value="hr_manager">HR Manager</option>
-                <option value="admin">Admin</option>
+                <option value="REGISTRAR">Registrar</option>
+                <option value="OFFICER">Officer</option>
+                <option value="VIEWER">Viewer</option>
+                <option value="ADMIN">Admin</option>
               </select>
             </div>
-          </div>
-
-          <div>
-            <h5 className="mb-3 font-semibold text-[#292D32]">
-              Permissions
-            </h5>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              {permissionOptions.map((permission) => (
-                <label
-                  key={permission.key}
-                  className={`flex items-start gap-3 rounded-lg border p-3 transition-colors duration-150 ${
-                    role === "admin"
-                      ? "border-[#D6E2E8] bg-[#F8FAFB]"
-                      : "border-[#ECEFF2] hover:border-[#D6E2E8] hover:bg-[#F8FAFB]"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={
-                      role === "admin" || permissions[permission.key]
-                    }
-                    disabled={role === "admin"}
-                    onChange={(e) =>
-                      setPermissions((current) => ({
-                        ...current,
-                        [permission.key]: e.target.checked,
-                      }))
-                    }
-                    className="mt-1 h-4 w-4 accent-[#0A506E]"
-                  />
-
-                  <span>
-                    <span className="block text-sm font-semibold text-[#292D32]">
-                      {permission.label}
-                    </span>
-                    <span className="text-xs text-[#737B86]">
-                      {permission.description}
-                    </span>
-                  </span>
-                </label>
-              ))}
-            </div>
-
-            {role === "admin" && (
-              <p className="mt-3 rounded-lg bg-[#E7F1F5] p-3 text-xs text-[#0A506E]">
-                Admin users receive all permissions in this demo.
-              </p>
-            )}
           </div>
 
           {notice && (
             <p
               role="status"
               aria-live="polite"
-              className={`rounded-lg border p-3 text-sm ${
-                notice === "User created successfully."
-                  ? "border-[#D6E2E8] bg-[#E7F1F5] text-[#0A506E]"
-                  : "border-amber-200 bg-amber-50 text-amber-800"
-              }`}
+              className="rounded-lg border border-[#D6E2E8] bg-[#F8FAFB] p-3 text-sm text-[#454B54]"
             >
               {notice}
             </p>
@@ -277,93 +219,68 @@ export default function UserManagement() {
 
           <button
             type="submit"
-            className="rounded-lg bg-[#0A506E] px-5 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#176A87] active:bg-[#135B74] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A506E]/30"
+            disabled={saving}
+            className="rounded-lg bg-[#0A506E] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#176A87] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            + Create User
+            {saving ? "Creating..." : "+ Create User"}
           </button>
         </form>
       </div>
 
-      {/* System users table */}
       <div className="overflow-hidden rounded-xl border border-[#ECEFF2] bg-white shadow-sm">
         <div className="border-b border-[#ECEFF2] p-5">
-          <h4 className="font-bold text-[#292D32]">
-            System Users
-          </h4>
+          <h4 className="font-bold text-[#292D32]">System Users</h4>
           <p className="mt-1 text-sm text-[#737B86]">
-            {users.length} {users.length === 1 ? "user" : "users"} created
+            {users.length} {users.length === 1 ? "user" : "users"} found
           </p>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[700px] text-left text-sm">
+          <table className="w-full min-w-[650px] text-left text-sm">
             <thead className="bg-[#F8FAFB] text-xs uppercase tracking-wide text-[#737B86]">
               <tr>
-                <th className="px-4 py-4 font-semibold">#</th>
-                <th className="px-4 py-4 font-semibold">Username</th>
+                <th className="px-4 py-4 font-semibold">ID</th>
                 <th className="px-4 py-4 font-semibold">Full Name</th>
+                <th className="px-4 py-4 font-semibold">Email</th>
                 <th className="px-4 py-4 font-semibold">Role</th>
-                <th className="px-4 py-4 font-semibold">Permissions</th>
-                <th className="px-4 py-4 font-semibold">Action</th>
+                <th className="px-4 py-4 font-semibold">Status</th>
               </tr>
             </thead>
 
             <tbody className="divide-y divide-[#ECEFF2]">
-              {users.length === 0 ? (
+              {loading ? (
                 <tr>
-                  <td
-                    colSpan={6}
-                    className="px-4 py-12 text-center text-[#737B86]"
-                  >
-                    <p className="font-semibold text-[#454B54]">
-                      No users found.
-                    </p>
-                    <p className="mt-1 text-xs text-[#9298A1]">
-                      Create your first user using the form above.
-                    </p>
+                  <td colSpan={5} className="px-4 py-12 text-center text-[#737B86]">
+                    Loading users...
+                  </td>
+                </tr>
+              ) : users.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-12 text-center text-[#737B86]">
+                    No users found.
                   </td>
                 </tr>
               ) : (
                 users.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="transition-colors duration-150 hover:bg-[#F8FAFB]"
-                  >
-                    <td className="px-4 py-4 text-[#9298A1]">
-                      {user.id}
-                    </td>
-
-                    <td className="px-4 py-4 font-semibold text-[#0A506E]">
-                      {user.username}
-                    </td>
-
+                  <tr key={user.id} className="transition-colors hover:bg-[#F8FAFB]">
+                    <td className="px-4 py-4 text-[#9298A1]">{user.id}</td>
                     <td className="px-4 py-4 font-medium text-[#292D32]">
                       {user.fullName}
                     </td>
-
+                    <td className="px-4 py-4 text-[#454B54]">{user.email}</td>
                     <td className="px-4 py-4">
                       <span className="inline-flex rounded-full bg-[#E7F1F5] px-3 py-1 text-xs font-semibold text-[#0A506E]">
-                        {user.role === "admin" ? "Admin" : "HR Manager"}
+                        {roleLabels[user.role] ?? user.role}
                       </span>
                     </td>
-
-                    <td className="max-w-xs whitespace-normal px-4 py-4 text-[#737B86]">
-                      {user.role === "admin"
-                        ? "All permissions"
-                        : permissionOptions
-                            .filter((p) => user.permissions[p.key])
-                            .map((p) => p.label)
-                            .join(", ") || "None"}
-                    </td>
-
                     <td className="px-4 py-4">
-                      <button
-                        type="button"
-                        onClick={() => deleteUser(user.id)}
-                        className="rounded-lg px-3 py-2 font-semibold text-red-700 transition-colors duration-150 hover:bg-red-50"
-                      >
-                        Delete
-                      </button>
+                      <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                        user.active
+                          ? "bg-green-50 text-green-700"
+                          : "bg-gray-100 text-gray-600"
+                      }`}>
+                        {user.active ? "Active" : "Inactive"}
+                      </span>
                     </td>
                   </tr>
                 ))
