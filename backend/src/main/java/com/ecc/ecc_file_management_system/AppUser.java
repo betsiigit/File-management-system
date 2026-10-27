@@ -7,7 +7,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.FetchType;
 @Entity
 @Table(name = "app_users")
 public class AppUser {
@@ -31,7 +33,13 @@ public class AppUser {
     @Column(nullable = false)
     private boolean active = true;
 
+       @ManyToOne(fetch = FetchType.LAZY)
+@JoinColumn(name = "branch_id")
+private Branch branch;
+
     public AppUser() {
+     
+        
     }
 
     public Long getId() {
@@ -65,6 +73,14 @@ public class AppUser {
     public String getRole() {
         return role;
     }
+
+    public Branch getBranch() {
+    return branch;
+}
+
+public void setBranch(Branch branch) {
+    this.branch = branch;
+}
 
     public void setRole(String role) {
         this.role = role;

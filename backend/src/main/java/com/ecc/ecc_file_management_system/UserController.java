@@ -21,12 +21,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
     private final AppUserRepository appUserRepository;
+    private final BranchRepository branchRepository;
     private final PasswordEncoder passwordEncoder;
 
     public UserController(
             AppUserRepository appUserRepository,
+            BranchRepository branchRepository,
             PasswordEncoder passwordEncoder) {
         this.appUserRepository = appUserRepository;
+        this.branchRepository = branchRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -48,11 +51,12 @@ public class UserController {
                 || request.email().isBlank()
                 || request.password() == null
                 || request.password().length() < 12
-                || request.role() == null) {
+                || request.role() == null
+                || request.branchId() == null) {
             return ResponseEntity.badRequest()
                     .body(Map.of(
                             "message",
-                            "Name, email, role, and a password of at least 12 characters are required."));
+                            "Name, email, role, branch, and a password of at least 12 characters are required."));
         }
 
         String email = request.email().trim();
@@ -62,7 +66,9 @@ public class UserController {
 
         if (!email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Enter a valid email address."));
+                    .body(Map.of(
+                            "message",
+                            "Enter a valid email address."));
         }
 
         if (!List.of("ADMIN", "REGISTRAR", "OFFICER", "VIEWER")
@@ -73,8 +79,20 @@ public class UserController {
 
         if (appUserRepository.existsByEmailIgnoreCase(email)) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Map.of("message",
+                    .body(Map.of(
+                            "message",
                             "An account with this email already exists."));
+        }
+
+        Branch branch = branchRepository.findById(request.branchId())
+                .filter(Branch::isActive)
+                .orElse(null);
+
+        if (branch == null) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of(
+                            "message",
+                            "Select a valid active branch."));
         }
 
         AppUser user = new AppUser();
@@ -84,6 +102,7 @@ public class UserController {
         user.setPasswordHash(
                 passwordEncoder.encode(request.password()));
         user.setActive(true);
+        user.setBranch(branch);
 
         AppUser savedUser = appUserRepository.save(user);
 
@@ -92,19 +111,24 @@ public class UserController {
     }
 
     private UserResponse toResponse(AppUser user) {
+        Branch branch = user.getBranch();
+
         return new UserResponse(
                 user.getId(),
                 user.getFullName(),
                 user.getEmail(),
                 user.getRole(),
-                user.isActive());
+                user.isActive(),
+                branch == null ? null : branch.getId(),
+                branch == null ? null : branch.getName());
     }
 
     public record CreateUserRequest(
             String fullName,
             String email,
             String password,
-            String role) {
+            String role,
+            Long branchId) {
     }
 
     public record UserResponse(
@@ -112,7 +136,8 @@ public class UserController {
             String fullName,
             String email,
             String role,
-            boolean active) {
+            boolean active,
+            Long branchId,
+            String branchName) {
     }
 }
-

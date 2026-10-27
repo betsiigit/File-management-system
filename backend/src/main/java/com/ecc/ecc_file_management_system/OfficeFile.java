@@ -13,6 +13,10 @@ import jakarta.validation.constraints.PositiveOrZero;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+
 @Entity
 @Table(name = "office_files")
 public class OfficeFile {
@@ -64,6 +68,10 @@ private LocalDate outgoingDate;
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+@JoinColumn(name = "branch_id")
+private Branch branch;
+
     public OfficeFile() {
     }
 
@@ -89,6 +97,14 @@ public void setVolume(String volume) {
 
 public String getStatus() {
     return status;
+}
+
+public Branch getBranch() {
+    return branch;
+}
+
+public void setBranch(Branch branch) {
+    this.branch = branch;
 }
 
 public void setStatus(String status) {

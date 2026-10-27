@@ -15,10 +15,16 @@ public interface OfficeFileRepository
 
     boolean existsByReferenceNumber(String referenceNumber);
 
+    List<OfficeFile> findByBranchId(Long branchId);
+
+    Optional<OfficeFile> findByIdAndBranchId(Long id, Long branchId);
+
+    Optional<OfficeFile> findByReferenceNumberAndBranchId(
+            String referenceNumber, Long branchId);
+
     List<OfficeFile> findByDepartmentIgnoreCase(String department);
 
     List<OfficeFile> findByFileTypeIgnoreCase(String fileType);
 
     List<OfficeFile> findByAssignedOfficerIgnoreCase(String assignedOfficer);
 }
-
