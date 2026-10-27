@@ -155,10 +155,10 @@ function handlePrintVolume() {
   return;
 }
 
-  if (volumeFiles.length === 0) {
-    alert("This volume has no records to print.");
-    return;
-  }
+  if (printVolumeFiles.length === 0) {
+  alert("No records found for this reference in the selected volume.");
+  return;
+}
 
   const escapeHtml = (value: string | number) =>
     String(value)
@@ -169,9 +169,9 @@ function handlePrintVolume() {
       .replace(/'/g, "&#39;");
 
   // Group by the complete reference prefix before the first slash.
-  const groupedFiles = new Map<string, typeof volumeFiles>();
+ const groupedFiles = new Map<string, typeof printVolumeFiles>();
 
-  volumeFiles.forEach((file) => {
+printVolumeFiles.forEach((file) => {
     const reference = file.reference.trim();
     const group = reference.split("/")[0].trim() || "Unknown";
 

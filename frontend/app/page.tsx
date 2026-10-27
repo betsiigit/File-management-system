@@ -245,9 +245,12 @@ useEffect(() => {
   
 async function loadFiles() {
   try {
-    const response = await fetch(
-      "http://localhost:8081/api/office-files"
-    );
+  const response = await fetch(
+  "http://localhost:8081/api/office-files",
+  {
+    credentials: "include",
+  }
+);
 
     if (!response.ok) {
       throw new Error(`Failed to load files (${response.status})`);
@@ -359,7 +362,12 @@ async function loadFiles() {
 
 async function loadEmployees() {
   try {
-    const response = await fetch("http://localhost:8081/api/employees");
+    const response = await fetch(
+  "http://localhost:8081/api/employees",
+  {
+    credentials: "include",
+  }
+);
 
     if (!response.ok) {
       throw new Error("Failed to load employees");
