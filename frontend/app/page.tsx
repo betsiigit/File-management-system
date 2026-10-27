@@ -175,8 +175,7 @@ const [profileMessage, setProfileMessage] = useState("");
 
   const [files, setFiles] = useState<OfficeFile[]>(initialFiles);
   const [selectedVolume, setSelectedVolume] = useState("All");
- const [employees, setEmployees] =
-  useState<Employee[]>(initialEmployees);
+ const [employees, setEmployees] = useState<Employee[]>([]);
   const [activeMenu, setActiveMenu] = useState("Dashboard");
   const [profileView, setProfileView] = useState<
   "profile" | "edit-profile" | "settings" | null
@@ -355,7 +354,23 @@ async function loadFiles() {
 
 
   loadFiles();
+    loadEmployees();
 }, []);
+
+async function loadEmployees() {
+  try {
+    const response = await fetch("http://localhost:8081/api/employees");
+
+    if (!response.ok) {
+      throw new Error("Failed to load employees");
+    }
+
+    const data: Employee[] = await response.json();
+    setEmployees(data);
+  } catch (error) {
+    console.error("Error loading employees:", error);
+  }
+}
 
   function handleNavigate(menu: string) {
     setActiveMenu(menu);
@@ -364,34 +379,64 @@ async function loadFiles() {
     setShowForm(menu === "Register File");
   }
   
-function handleSaveEmployee(
+
+async function handleSaveEmployee(
   employee: Omit<Employee, "id">
 ) {
-  const duplicateId = employees.some(
-    (existing) =>
-      existing.employeeId.toLowerCase() ===
-      employee.employeeId.toLowerCase()
-  );
-
-  if (duplicateId) {
-    setEmployeeNotice(
-      "This employee ID already exists. Please use a different ID."
+  try {
+    const duplicateId = employees.some(
+      (existing) =>
+        existing.employeeId.toLowerCase() ===
+        employee.employeeId.trim().toLowerCase()
     );
-    return;
+
+    if (duplicateId) {
+      setEmployeeNotice(
+        "This employee ID already exists. Please use a different ID."
+      );
+      return;
+    }
+
+    const response = await fetch(
+      "http://localhost:8081/api/employees",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...employee,
+          employeeId: employee.employeeId.trim(),
+          fullName: employee.fullName.trim(),
+          department: employee.department.trim(),
+          position: employee.position.trim(),
+        }),
+      }
+    );
+
+    if (response.status === 409) {
+      setEmployeeNotice(
+        "This employee ID already exists. Please use a different ID."
+      );
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error("Failed to register employee.");
+    }
+
+    await loadEmployees();
+
+    setShowEmployeeForm(false);
+    setEmployeeNotice("Employee registered successfully.");
+  } catch (error) {
+    console.error("Error registering employee:", error);
+    setEmployeeNotice(
+      "Could not register employee. Please check that the backend is running."
+    );
   }
-
-  const newEmployee: Employee = {
-    ...employee,
-    id:
-      employees.length > 0
-        ? Math.max(...employees.map((item) => item.id)) + 1
-        : 1,
-  };
-
-  setEmployees((current) => [...current, newEmployee]);
-  setShowEmployeeForm(false);
-  setEmployeeNotice("Employee registered successfully.");
 }
+
 
  
 function exportEmployees(status: "Active" | "Inactive") {

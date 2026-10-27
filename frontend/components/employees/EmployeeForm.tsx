@@ -5,7 +5,9 @@ import { useState, type FormEvent } from "react";
 import type { Employee } from "./EmployeeTable";
 
 type EmployeeFormProps = {
-  onSave: (employee: Omit<Employee, "id">) => void;
+  onSave: (
+    employee: Omit<Employee, "id">
+  ) => void | Promise<void>;
   onCancel: () => void;
 };
 
@@ -20,29 +22,29 @@ export default function EmployeeForm({
   const [status, setStatus] = useState<"Active" | "Inactive">("Active");
   const [error, setError] = useState("");
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
 
-    if (
-      !employeeId.trim() ||
-      !fullName.trim() ||
-      !department.trim() ||
-      !position.trim()
-    ) {
-      setError("Please fill in all required fields.");
-      return;
-    }
-
-    setError("");
-
-    onSave({
-      employeeId: employeeId.trim(),
-      fullName: fullName.trim(),
-      department: department.trim(),
-      position: position.trim(),
-      status,
-    });
+  if (
+    !employeeId.trim() ||
+    !fullName.trim() ||
+    !department.trim() ||
+    !position.trim()
+  ) {
+    setError("Please fill in all required fields.");
+    return;
   }
+
+  setError("");
+
+  await onSave({
+    employeeId: employeeId.trim(),
+    fullName: fullName.trim(),
+    department: department.trim(),
+    position: position.trim(),
+    status,
+  });
+}
 
   const inputClass =
     "mt-2 w-full rounded-lg border border-[#D6E2E8] bg-white px-3 py-3 text-sm text-[#292D32] outline-none transition-colors duration-200 placeholder:text-[#9298A1] focus:border-[#0A506E] focus:ring-2 focus:ring-[#0A506E]/10";
