@@ -32,10 +32,19 @@ public class AdminBootstrap implements CommandLineRunner {
         this.appUserRepository = appUserRepository;
         this.passwordEncoder = passwordEncoder;
     }
+   
 
     @Override
-    public void run(String... args) {
-        if (appUserRepository.count() > 0) {
+    
+
+public void run(String... args) {
+
+    System.out.println("Admin email configured: " + !adminEmail.isBlank());
+    System.out.println("Admin password configured: " + !adminPassword.isBlank());
+    System.out.println("Admin full name configured: " + !adminFullName.isBlank());
+
+    if (appUserRepository.count() > 0) {
+
             logger.info("Admin bootstrap skipped: user accounts already exist.");
             return;
         }
