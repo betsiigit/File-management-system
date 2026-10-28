@@ -281,10 +281,14 @@ async function loadFiles() {
 
           let attachmentNames: string[] = [];
 
-          try {
-            const attachmentResponse = await fetch(
-              `http://localhost:8081/api/office-files/${file.id}/attachments`
-            );
+        
+try {
+  const attachmentResponse = await fetch(
+    `http://localhost:8081/api/office-files/${file.id}/attachments`,
+    {
+      credentials: "include",
+    }
+  );
 
             if (attachmentResponse.ok) {
               const attachments = await attachmentResponse.json();
@@ -593,6 +597,7 @@ const response = await fetch(
   "http://localhost:8081/api/office-files",
   {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
@@ -641,6 +646,7 @@ if (data.attachments.length > 0) {
       `http://localhost:8081/api/attachments/office-file/${savedFile.id}`,
       {
         method: "POST",
+         credentials: "include",
         body: uploadForm,
       }
     );

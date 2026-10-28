@@ -71,8 +71,12 @@ export default function FileDetails({
     setAttachmentsLoaded(false);
 
     let cancelled = false;
-
-    fetch(`http://localhost:8081/api/office-files/${file.id}/attachments`)
+fetch(
+  `http://localhost:8081/api/office-files/${file.id}/attachments`,
+  {
+    credentials: "include",
+  }
+)
       .then((response) => {
         if (!response.ok) {
           throw new Error("Failed to load attachments.");
@@ -155,6 +159,7 @@ export default function FileDetails({
         `http://localhost:8081/api/office-files/${file.id}`,
         {
           method: "PUT",
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
           },
@@ -230,11 +235,14 @@ export default function FileDetails({
     setMessage("");
     setIsDeleting(true);
 
-    try {
-      const response = await fetch(
-        `http://localhost:8081/api/office-files/${file.id}`,
-        { method: "DELETE" }
-      );
+ try {
+  const response = await fetch(
+    `http://localhost:8081/api/office-files/${file.id}`,
+    {
+      method: "DELETE",
+      credentials: "include",
+    }
+  );
 
       if (!response.ok) {
         const responseText = await response.text();

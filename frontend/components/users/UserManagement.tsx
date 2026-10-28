@@ -5,13 +5,23 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 type Role = "ADMIN" | "REGISTRAR" | "OFFICER" | "VIEWER";
 
+
 type User = {
   id: number;
   fullName: string;
   email: string;
   role: Role;
   active: boolean;
+  branchId: number | null;
+  branchName?: string | null;
 };
+
+type Branch = {
+  id: number;
+  name: string;
+  active: boolean;
+};
+
 
 const roleLabels: Record<Role, string> = {
   ADMIN: "Admin",
@@ -25,6 +35,10 @@ const inputClass =
 
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
+  
+const [branches, setBranches] = useState<Branch[]>([]);
+const [branchId, setBranchId] = useState("");
+
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -206,6 +220,30 @@ export default function UserManagement() {
               </select>
             </div>
           </div>
+          <div>
+  <label
+    htmlFor="branch"
+    className="mb-2 block text-sm font-medium text-[#292D32]"
+  >
+    Branch <span className="text-red-500">*</span>
+  </label>
+
+  <select
+    id="branch"
+    value={branchId}
+    onChange={(event) => setBranchId(event.target.value)}
+    className={inputClass}
+    required
+  >
+    <option value="">Select a branch</option>
+
+    {branches.map((branch) => (
+      <option key={branch.id} value={branch.id}>
+        {branch.name}
+      </option>
+    ))}
+  </select>
+</div>
 
           {notice && (
             <p
