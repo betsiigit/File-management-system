@@ -20,6 +20,20 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasRole('ADMIN')")
 public class UserController {
 
+    @GetMapping("/branches")
+public ResponseEntity<?> getBranches() {
+    return ResponseEntity.ok(
+            branchRepository.findAll().stream()
+                    .filter(Branch::isActive)
+                    .map(branch -> Map.of(
+                            "id", branch.getId(),
+                            "name", branch.getName(),
+                            "active", branch.isActive()
+                    ))
+                    .toList()
+    );
+}
+
     private final AppUserRepository appUserRepository;
     private final BranchRepository branchRepository;
     private final PasswordEncoder passwordEncoder;

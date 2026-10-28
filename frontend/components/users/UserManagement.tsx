@@ -47,38 +47,61 @@ const [branchId, setBranchId] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const loadUsers = useCallback(async () => {
-    setLoading(true);
+const loadUsers = useCallback(async () => {
+  setLoading(true);
 
-    try {
-      const response = await fetch("http://localhost:8081/api/users", {
-        credentials: "include",
-      });
+  try {
+    const response = await fetch("http://localhost:8081/api/users", {
+      credentials: "include",
+    });
 
-      if (!response.ok) {
-        throw new Error(
-          response.status === 401 || response.status === 403
-            ? "You must be logged in as an Admin to manage users."
-            : `Could not load users (${response.status}).`,
-        );
-      }
-
-      const data: User[] = await response.json();
-      setUsers(data);
-    } catch (error) {
-      setNotice(
-        error instanceof Error
-          ? error.message
-          : "Unable to connect to the backend.",
+    if (!response.ok) {
+      throw new Error(
+        response.status === 401 || response.status === 403
+          ? "You must be logged in as an Admin to manage users."
+          : `Could not load users (${response.status}).`,
       );
-    } finally {
-      setLoading(false);
     }
-  }, []);
 
-  useEffect(() => {
-    void loadUsers();
-  }, [loadUsers]);
+    const data: User[] = await response.json();
+    setUsers(data);
+  } catch (error) {
+    setNotice(
+      error instanceof Error
+        ? error.message
+        : "Unable to connect to the backend.",
+    );
+  } finally {
+    setLoading(false);
+  }
+}, []);
+
+const loadBranches = useCallback(async () => {
+  try {
+    const response = await fetch(
+      "http://localhost:8081/api/users/branches",
+      { credentials: "include" },
+    );
+
+    if (!response.ok) {
+      throw new Error(`Could not load branches (${response.status}).`);
+    }
+
+    const data: Branch[] = await response.json();
+    setBranches(data);
+  } catch (error) {
+    setNotice(
+      error instanceof Error
+        ? error.message
+        : "Unable to load branches.",
+    );
+  }
+}, []);
+
+useEffect(() => {
+  void loadUsers();
+  void loadBranches();
+}, [loadUsers, loadBranches]);
 
   async function createUser(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -98,12 +121,13 @@ const [branchId, setBranchId] = useState("");
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify({
-          fullName: fullName.trim(),
-          email: email.trim(),
-          password,
-          role,
-        }),
+       body: JSON.stringify({
+  fullName: fullName.trim(),
+  email: email.trim(),
+  password,
+  role,
+  branchId: Number(branchId),
+}),
       });
 
       const result = await response.json().catch(() => null);
@@ -125,6 +149,7 @@ const [branchId, setBranchId] = useState("");
       setEmail("");
       setPassword("");
       setRole("OFFICER");
+      setBranchId("");
       setNotice("User created successfully and saved to the database.");
     } catch (error) {
       setNotice(
