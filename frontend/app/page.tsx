@@ -191,6 +191,17 @@ const [profileMessage, setProfileMessage] = useState("");
   const [profileView, setProfileView] = useState<
   "profile" | "edit-profile" | "settings" | null
 >(null);
+
+const [currentPassword, setCurrentPassword] = useState("");
+const [newPassword, setNewPassword] = useState("");
+const [confirmPassword, setConfirmPassword] = useState("");
+const [passwordSaving, setPasswordSaving] = useState(false);
+const [passwordMessage, setPasswordMessage] = useState("");
+const [passwordMessageType, setPasswordMessageType] = useState<
+  "success" | "error" | ""
+>("");
+
+
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
   const [department, setDepartment] = useState("Administration");
@@ -410,6 +421,75 @@ try {
   loadFiles();
     loadEmployees();
 }, []);
+
+async function handleChangePassword(
+  event: FormEvent<HTMLFormElement>,
+) {
+  event.preventDefault();
+  setPasswordMessage("");
+  setPasswordMessageType("");
+
+  if (newPassword !== confirmPassword) {
+    setPasswordMessage("Your new passwords do not match.");
+    setPasswordMessageType("error");
+    return;
+  }
+
+  if (newPassword.length < 8) {
+    setPasswordMessage(
+      "Your new password must contain at least 8 characters.",
+    );
+    setPasswordMessageType("error");
+    return;
+  }
+
+  setPasswordSaving(true);
+
+  try {
+    const response = await fetch(
+      "http://localhost:8081/api/auth/change-password",
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+          confirmPassword,
+        }),
+      },
+    );
+
+    const result = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(
+        result?.message ??
+          `Could not change password (${response.status}).`,
+      );
+    }
+
+    setPasswordMessage(
+      result?.message ?? "Password changed successfully.",
+    );
+    setPasswordMessageType("success");
+
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+  } catch (error) {
+    setPasswordMessage(
+      error instanceof Error
+        ? error.message
+        : "Unable to change your password. Please try again.",
+    );
+    setPasswordMessageType("error");
+  } finally {
+    setPasswordSaving(false);
+  }
+}
 
 async function loadEmployees() {
   try {
@@ -1030,18 +1110,103 @@ onSubmit={async (event) => {
       </div>
     </div>
 
-    <div className="rounded-2xl border border-[#E7EAF0] bg-white p-6 shadow-[0_3px_14px_rgba(32,48,72,0.035)]">
-      <h4 className="text-lg font-semibold tracking-tight text-[#292D32]">
-        Account Security
-      </h4>
-      <p className="mt-2 text-sm text-[#7B8492]">
-        Password changes and security controls will be available
-        after backend authentication is implemented.
-      </p>
-      <span className="mt-3 inline-block rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
-        Coming soon
-      </span>
+   
+<div className="rounded-2xl border border-[#E7EAF0] bg-white p-6 shadow-[0_3px_14px_rgba(32,48,72,0.035)]">
+  <div>
+    <h4 className="text-lg font-semibold tracking-tight text-[#292D32]">
+      Account Security
+    </h4>
+    <p className="mt-2 text-sm text-[#7B8492]">
+      Update your password to keep your account secure.
+    </p>
+  </div>
+
+  {passwordMessage && (
+    <div
+      role="status"
+      aria-live="polite"
+      className={`mt-5 rounded-lg border p-3 text-sm ${
+        passwordMessageType === "success"
+          ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+          : "border-red-200 bg-red-50 text-red-700"
+      }`}
+    >
+      {passwordMessage}
     </div>
+  )}
+
+  <form onSubmit={handleChangePassword} className="mt-6 space-y-5">
+    <div>
+      <label
+        htmlFor="current-password"
+        className="mb-2 block text-sm font-medium text-[#454B54]"
+      >
+        Current Password
+      </label>
+      <input
+        id="current-password"
+        type="password"
+        autoComplete="current-password"
+        value={currentPassword}
+        onChange={(event) => setCurrentPassword(event.target.value)}
+        required
+        className="w-full rounded-lg border border-[#D6E2E8] bg-white px-3 py-3 text-sm text-[#292D32] outline-none focus:border-[#0A506E] focus:ring-2 focus:ring-[#0A506E]/10"
+      />
+    </div>
+
+    <div>
+      <label
+        htmlFor="new-password"
+        className="mb-2 block text-sm font-medium text-[#454B54]"
+      >
+        New Password
+      </label>
+      <input
+        id="new-password"
+        type="password"
+        autoComplete="new-password"
+        value={newPassword}
+        onChange={(event) => setNewPassword(event.target.value)}
+        minLength={8}
+        maxLength={72}
+        required
+        className="w-full rounded-lg border border-[#D6E2E8] bg-white px-3 py-3 text-sm text-[#292D32] outline-none focus:border-[#0A506E] focus:ring-2 focus:ring-[#0A506E]/10"
+      />
+      <p className="mt-1 text-xs text-[#7B8492]">
+        Use at least 8 characters.
+      </p>
+    </div>
+
+    <div>
+      <label
+        htmlFor="confirm-new-password"
+        className="mb-2 block text-sm font-medium text-[#454B54]"
+      >
+        Confirm New Password
+      </label>
+      <input
+        id="confirm-new-password"
+        type="password"
+        autoComplete="new-password"
+        value={confirmPassword}
+        onChange={(event) => setConfirmPassword(event.target.value)}
+        minLength={8}
+        maxLength={72}
+        required
+        className="w-full rounded-lg border border-[#D6E2E8] bg-white px-3 py-3 text-sm text-[#292D32] outline-none focus:border-[#0A506E] focus:ring-2 focus:ring-[#0A506E]/10"
+      />
+    </div>
+
+    <button
+      type="submit"
+      disabled={passwordSaving}
+      className="rounded-lg bg-[#0A506E] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#176A87] disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {passwordSaving ? "Updating Password..." : "Change Password"}
+    </button>
+  </form>
+</div>
+
   </div>
 )}
 
