@@ -839,13 +839,65 @@ if (data.attachments.length > 0) {
     </h4>
 
     <form
-      className="space-y-4"
-      onSubmit={(event) => {
-        event.preventDefault();
-        setProfile(editProfile);
-        setProfileMessage("Profile updated successfully!");
-        setProfileView("profile");
-      }}
+    
+onSubmit={async (event) => {
+  event.preventDefault();
+  setProfileMessage("");
+
+  try {
+    const response = await fetch(
+      "http://localhost:8081/api/auth/profile",
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          fullName: editProfile.fullName.trim(),
+        }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result.message || "Failed to update your profile."
+      );
+    }
+
+    const updatedProfile = {
+      ...profile,
+      fullName: result.fullName,
+      email: result.email,
+      role: result.role,
+      branchName: result.branchName ?? null,
+      department: result.branchName ?? "Not assigned",
+    };
+
+    setProfile(updatedProfile);
+    setEditProfile(updatedProfile);
+
+    localStorage.setItem("currentUser", JSON.stringify(result));
+
+    window.dispatchEvent(
+      new CustomEvent("current-user-updated", {
+        detail: result,
+      })
+    );
+
+    setProfileMessage("Profile updated successfully!");
+    setProfileView("profile");
+  } catch (error) {
+    setProfileMessage(
+      error instanceof Error
+        ? error.message
+        : "Something went wrong while updating your profile."
+    );
+  }
+}}
+
     >
       <div>
         <label className="mb-1 block text-sm font-medium">
