@@ -58,7 +58,10 @@ export default function LoginPage() {
         );
       }
 
-      await response.json();
+      const user = await response.json();
+
+      // Store user information in localStorage or context
+      localStorage.setItem("user", JSON.stringify(user));
 
       router.push("/");
     } catch (err) {

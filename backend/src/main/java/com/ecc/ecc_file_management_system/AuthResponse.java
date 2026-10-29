@@ -7,15 +7,25 @@ public class AuthResponse {
     private String email;
     private String fullName;
     private String role;
+    private Long branchId;
+    private String branchName;
 
     public AuthResponse() {
     }
 
-    public AuthResponse(Long id, String email, String fullName, String role) {
+    public AuthResponse(
+            Long id,
+            String email,
+            String fullName,
+            String role,
+            Long branchId,
+            String branchName) {
         this.id = id;
         this.email = email;
         this.fullName = fullName;
         this.role = role;
+        this.branchId = branchId;
+        this.branchName = branchName;
     }
 
     public Long getId() {
@@ -33,5 +43,12 @@ public class AuthResponse {
     public String getRole() {
         return role;
     }
-}
 
+    public Long getBranchId() {
+        return branchId;
+    }
+
+    public String getBranchName() {
+        return branchName;
+    }
+}

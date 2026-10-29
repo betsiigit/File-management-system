@@ -77,11 +77,19 @@ public class AuthController {
                             "Authenticated user was not found."));
 
             return ResponseEntity.ok(
-                    new AuthResponse(
-                            user.getId(),
-                            user.getEmail(),
-                            user.getFullName(),
-                            user.getRole()));
+        new AuthResponse(
+                user.getId(),
+                user.getEmail(),
+                user.getFullName(),
+                user.getRole(),
+                user.getBranch() != null
+                        ? user.getBranch().getId()
+                        : null,
+                user.getBranch() != null
+                        ? user.getBranch().getName()
+                        : null
+        )
+);
 
         } catch (AuthenticationException exception) {
             SecurityContextHolder.clearContext();

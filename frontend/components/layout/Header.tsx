@@ -36,7 +36,24 @@ export default function Header({
   language,
   onLanguageChange,
 }: HeaderProps) {
+
+
+  function formatRole(role?: string) {
+  const roles: Record<string, string> = {
+    ADMIN: "Administrator",
+    REGISTRAR: "Registrar",
+    OFFICER: "Officer",
+    VIEWER: "Viewer",
+  };
+
+  return role ? roles[role.toUpperCase()] || role : "";
+}
   const [isOpen, setIsOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{
+  fullName: string;
+  role: string;
+  branchName?: string | null;
+} | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
@@ -58,6 +75,18 @@ export default function Header({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  useEffect(() => {
+  try {
+    const savedUser = localStorage.getItem("currentUser");
+
+    if (savedUser) {
+      setCurrentUser(JSON.parse(savedUser));
+    }
+  } catch (error) {
+    console.error("Unable to load current user profile:", error);
+  }
+}, []);
 
   function handleMenuAction(action: string) {
     setIsOpen(false);
@@ -190,10 +219,10 @@ export default function Header({
 
            <span className="hidden text-right sm:block">
   <span className="block text-sm font-semibold text-[#292D32]">
-    Office Administrator
+   {currentUser?.fullName || "Loading profile..."}
   </span>
   <span className="mt-0.5 block text-xs text-[#737B86]">
-    Administrator
+ {formatRole(currentUser?.role)}
   </span>
 </span>
 
@@ -213,10 +242,10 @@ export default function Header({
             >
               <div className="border-b border-[#ECEFF2] px-4 py-3">
                 <p className="text-sm font-semibold text-[#292D32]">
-                  Office Administrator
+                  {currentUser?.fullName || "Loading profile..."}
                 </p>
                 <p className="mt-0.5 text-xs text-[#9298A1]">
-                  Administrator
+                {formatRole(currentUser?.role)}
                 </p>
               </div>
 
