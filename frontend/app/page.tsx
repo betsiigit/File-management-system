@@ -164,12 +164,13 @@ const t = translations[language];
 
   
 const [profile, setProfile] = useState({
-  fullName: "Office Administrator",
-  email: "admin@example.com",
+  fullName: "",
+  email: "",
+  role: "",
+  branchName: null as string | null,
   department: "Administration",
 });
 
-  
 const [editProfile, setEditProfile] = useState(profile);
 const [profileMessage, setProfileMessage] = useState("");
 
@@ -239,6 +240,29 @@ useEffect(() => {
       handleHeaderAction
     );
   };
+}, []);
+
+useEffect(() => {
+  try {
+    const savedUser = localStorage.getItem("currentUser");
+
+    if (!savedUser) return;
+
+    const user = JSON.parse(savedUser);
+
+    const updatedProfile = {
+      fullName: user.fullName ?? "",
+      email: user.email ?? "",
+      role: user.role ?? "",
+      branchName: user.branchName ?? null,
+      department: user.branchName ?? "Not assigned",
+    };
+
+    setProfile(updatedProfile);
+    setEditProfile(updatedProfile);
+  } catch (error) {
+    console.error("Unable to load profile:", error);
+  }
 }, []);
 
 useEffect(() => {
@@ -737,51 +761,76 @@ if (data.attachments.length > 0) {
       ← Back to {activeMenu}
     </button>
 
-    {profileView === "profile" && (
+ {profileView === "profile" && (
   <div className="max-w-xl rounded-2xl border border-[#E7EAF0] bg-white p-6 shadow-[0_3px_14px_rgba(32,48,72,0.035)]">
-    <div className="flex items-center gap-4">
-      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#E8F9FB] text-2xl font-semibold tracking-tight text-[#292D32]">
-        A
+    {profileMessage && (
+      <div className="mb-5 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+        {profileMessage}
       </div>
+    )}
+
+    <div className="flex items-center gap-4">
+      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#E8F9FB] text-2xl font-semibold uppercase text-[#292D32]">
+        {profile.fullName.trim().charAt(0) || "U"}
+      </div>
+
       <div>
         <h4 className="text-lg font-semibold tracking-tight text-[#292D32]">
-          Administrator
+          {profile.fullName || "User"}
         </h4>
         <p className="text-sm text-[#7B8492]">
-          Administrator · office Administrator
+          {profile.role === "ADMIN"
+            ? "Administrator"
+            : profile.role === "REGISTRAR"
+              ? "Registrar"
+              : profile.role === "OFFICER"
+                ? "Officer"
+                : profile.role === "VIEWER"
+                  ? "Viewer"
+                  : profile.role || "Role not assigned"}
+          {" · "}
+          {profile.branchName || "No branch assigned"}
         </p>
       </div>
     </div>
 
     <div className="mt-6 grid gap-4 border-t border-[#EDF0F4] pt-5 sm:grid-cols-2">
       <div>
-        <p className="text-sm text-[#7B8492]">Username</p>
-        <p className="mt-1 font-medium">admin</p>
+        <p className="text-sm text-[#7B8492]">Full Name</p>
+        <p className="mt-1 font-medium">{profile.fullName || "—"}</p>
       </div>
+
+      <div>
+        <p className="text-sm text-[#7B8492]">Email Address</p>
+        <p className="mt-1 break-words font-medium">{profile.email || "—"}</p>
+      </div>
+
       <div>
         <p className="text-sm text-[#7B8492]">Role</p>
-        <p className="mt-1 font-medium">Administrator</p>
+        <p className="mt-1 font-medium">{profile.role || "—"}</p>
       </div>
-      <div className="mt-4">
-  <p className="text-sm text-[#7B8492]">Email Address</p>
-  <p className="mt-1 font-medium">{profile.email}</p>
-</div>
+
       <div>
-        <p className="text-sm text-[#7B8492]">{profile.department}</p>
-        <p className="mt-1 font-medium">Administration</p>
-      </div>
-      <div>
-        <p className="text-sm text-[#7B8492]">Account Status</p>
-        <p className="mt-1 font-medium text-[#1595A5]">Active</p>
+        <p className="text-sm text-[#7B8492]">Assigned Branch</p>
+        <p className="mt-1 font-medium">
+          {profile.branchName || "No branch assigned"}
+        </p>
       </div>
     </div>
 
-    <p className="mt-5 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
-      Demo account details. Real account information will come from the backend.
-    </p>
+    <button
+      type="button"
+      onClick={() => {
+        setEditProfile(profile);
+        setProfileMessage("");
+        setProfileView("edit-profile");
+      }}
+      className="mt-6 rounded-lg bg-[#18B6C9] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1595A5]"
+    >
+      Edit Profile
+    </button>
   </div>
 )}
-
 
 {profileView === "edit-profile" && (
   <div className="max-w-xl rounded-2xl border border-[#E7EAF0] bg-white p-6 shadow-[0_3px_14px_rgba(32,48,72,0.035)]">
