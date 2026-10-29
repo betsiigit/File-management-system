@@ -31,6 +31,9 @@ public class Employee {
     @Column(nullable = false)
     private String status;
 
+    @Column(nullable = true)
+private String gender;
+
     public Employee() {
     }
 
@@ -77,4 +80,12 @@ public class Employee {
     public void setStatus(String status) {
         this.status = status;
     }
+
+    public String getGender() {
+    return gender;
+}
+
+public void setGender(String gender) {
+    this.gender = gender;
+}
 }

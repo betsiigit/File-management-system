@@ -1,4 +1,3 @@
-
 "use client";
 
 export type Employee = {
@@ -8,6 +7,8 @@ export type Employee = {
   department: string;
   position: string;
   status: "Active" | "Inactive";
+  gender?: "Male" | "Female" | "Other" | "";
+  inactiveReason?: "Retired" | "Resigned" | "Deceased" | "Transferred" | "Other" | "";
 };
 
 type EmployeeTableProps = {
@@ -36,13 +37,14 @@ export default function EmployeeTable({
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[650px] text-left text-sm">
+        <table className="w-full min-w-[800px] text-left text-sm">
           <thead className="bg-[#F8FAFB] text-xs uppercase tracking-wide text-[#737B86]">
             <tr>
               <th className="px-5 py-4 font-semibold">Employee ID</th>
               <th className="px-5 py-4 font-semibold">Full Name</th>
               <th className="px-5 py-4 font-semibold">Department</th>
               <th className="px-5 py-4 font-semibold">Position</th>
+              <th className="px-5 py-4 font-semibold">Gender</th>
               <th className="px-5 py-4 font-semibold">Status</th>
             </tr>
           </thead>
@@ -51,7 +53,7 @@ export default function EmployeeTable({
             {filteredEmployees.length === 0 ? (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={6}
                   className="px-5 py-12 text-center text-[#737B86]"
                 >
                   No {status.toLowerCase()} employees found.
@@ -77,6 +79,10 @@ export default function EmployeeTable({
 
                   <td className="px-5 py-4 text-[#737B86]">
                     {employee.position}
+                  </td>
+
+                  <td className="px-5 py-4 text-[#737B86]">
+                    {employee.gender || "—"}
                   </td>
 
                   <td className="px-5 py-4">

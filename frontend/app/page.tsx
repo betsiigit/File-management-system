@@ -541,6 +541,7 @@ async function handleSaveEmployee(
       "http://localhost:8081/api/employees",
       {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -561,9 +562,17 @@ async function handleSaveEmployee(
       return;
     }
 
-    if (!response.ok) {
-      throw new Error("Failed to register employee.");
-    }
+if (!response.ok) {
+  const errorText = await response.text();
+
+  console.error("Employee registration failed");
+  console.error("HTTP status:", response.status);
+  console.error("Response body:", errorText);
+
+  throw new Error(
+    `Failed to register employee (${response.status}). ${errorText}`
+  );
+}
 
     await loadEmployees();
 

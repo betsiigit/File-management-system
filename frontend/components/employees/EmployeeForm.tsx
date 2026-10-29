@@ -20,6 +20,9 @@ export default function EmployeeForm({
   const [department, setDepartment] = useState("");
   const [position, setPosition] = useState("");
   const [status, setStatus] = useState<"Active" | "Inactive">("Active");
+  const [gender, setGender] = useState<
+  "Female" | "Male" | ""
+>("");
   const [error, setError] = useState("");
 
 async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -37,13 +40,14 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
 
   setError("");
 
-  await onSave({
-    employeeId: employeeId.trim(),
-    fullName: fullName.trim(),
-    department: department.trim(),
-    position: position.trim(),
-    status,
-  });
+await onSave({
+  employeeId: employeeId.trim(),
+  fullName: fullName.trim(),
+  department: department.trim(),
+  position: position.trim(),
+  status,
+  gender,
+});
 }
 
   const inputClass =
@@ -102,6 +106,30 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
               required
             />
           </div>
+          <div>
+  <label
+    htmlFor="employee-gender"
+    className="mb-2 block text-sm font-medium text-[#292D32]"
+  >
+    Gender
+  </label>
+
+  <select
+    id="employee-gender"
+    value={gender}
+   onChange={(event) =>
+  setGender(
+    event.target.value as "Female" | "Male"  | ""
+  )
+}
+    className="w-full rounded-lg border border-[#ECEFF2] bg-white px-3 py-2.5 text-sm text-[#292D32] outline-none focus:border-[#0A506E]"
+  >
+    <option value="">Select gender</option>
+    <option value="Female">Female</option>
+    <option value="Male">Male</option>
+    <option value="Other">Other</option>
+  </select>
+</div>
 
           <div>
             <label className={labelClass}>

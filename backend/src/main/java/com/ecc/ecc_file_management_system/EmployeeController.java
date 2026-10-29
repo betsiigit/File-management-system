@@ -53,6 +53,10 @@ public class EmployeeController {
         employee.setDepartment(employee.getDepartment().trim());
         employee.setPosition(employee.getPosition().trim());
 
+        if (employee.getGender() != null) {
+    employee.setGender(employee.getGender().trim());
+}
+
         Employee savedEmployee = employeeRepository.save(employee);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedEmployee);
     }

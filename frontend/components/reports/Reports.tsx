@@ -268,6 +268,54 @@ export default function Reports({ employees, files }: Props) {
     };
   }, [employees, files, appliedFrom, appliedTo]);
 
+  // Calculate actual gender statistics from employee records.
+  const genderStats = useMemo(() => {
+    const countGender = (
+      list: Employee[],
+      gender: "Male" | "Female" | "Other"
+    ) =>
+      list.filter(
+        (employee) =>
+          employee.gender?.trim().toLowerCase() === gender.toLowerCase()
+      ).length;
+
+    const recorded = employees.filter((employee) =>
+      ["male", "female", "other"].includes(
+        employee.gender?.trim().toLowerCase() ?? ""
+      )
+    ).length;
+
+    return {
+      recorded,
+      notRecorded: employees.length - recorded,
+      activeMale: countGender(report.active, "Male"),
+      activeFemale: countGender(report.active, "Female"),
+      activeOther: countGender(report.active, "Other"),
+      inactiveMale: countGender(report.inactive, "Male"),
+      inactiveFemale: countGender(report.inactive, "Female"),
+      inactiveOther: countGender(report.inactive, "Other"),
+    };
+  }, [employees, report.active, report.inactive]);
+
+  // Calculate inactive employee reasons when available.
+  const inactiveReasonStats = useMemo(() => {
+    const countReason = (
+      reason: "Retired" | "Resigned" | "Deceased" | "Transferred"
+    ) =>
+      report.inactive.filter(
+        (employee) =>
+          employee.inactiveReason?.trim().toLowerCase() ===
+          reason.toLowerCase()
+      ).length;
+
+    return {
+      retired: countReason("Retired"),
+      resigned: countReason("Resigned"),
+      deceased: countReason("Deceased"),
+      transferred: countReason("Transferred"),
+    };
+  }, [report.inactive]);
+
   function generateReport() {
     // The backend currently expects both dates or neither date.
     if (Boolean(fromDate) !== Boolean(toDate)) {
@@ -332,7 +380,7 @@ export default function Reports({ employees, files }: Props) {
 
         <p className="mb-4 text-sm text-slate-500">
           Choose a date range to filter the reports. Dates currently use the
-          browser's Gregorian calendar.
+          browser&apos;s Gregorian calendar.
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -429,7 +477,7 @@ export default function Reports({ employees, files }: Props) {
       <section className="space-y-4">
         <SectionTitle
           title="Gender Distribution"
-          description="Employee statistics. Gender breakdown requires a gender field in employee records."
+          description="Employee statistics based on recorded gender information."
         />
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -446,7 +494,7 @@ export default function Reports({ employees, files }: Props) {
           />
           <MetricCard
             label="Gender Recorded"
-            value="Unavailable"
+            value={genderStats.recorded}
             color="purple"
           />
         </div>
@@ -457,17 +505,26 @@ export default function Reports({ employees, files }: Props) {
             items={[
               {
                 label: "Male",
-                value: 0,
+                value: genderStats.activeMale,
                 color: "bg-blue-500",
               },
               {
                 label: "Female",
-                value: 0,
+                value: genderStats.activeFemale,
                 color: "bg-purple-500",
               },
               {
+                label: "Other",
+                value: genderStats.activeOther,
+                color: "bg-green-500",
+              },
+              {
                 label: "Not recorded",
-                value: report.active.length,
+                value:
+                  report.active.length -
+                  genderStats.activeMale -
+                  genderStats.activeFemale -
+                  genderStats.activeOther,
                 color: "bg-slate-400",
               },
             ]}
@@ -478,17 +535,26 @@ export default function Reports({ employees, files }: Props) {
             items={[
               {
                 label: "Male",
-                value: 0,
+                value: genderStats.inactiveMale,
                 color: "bg-blue-500",
               },
               {
                 label: "Female",
-                value: 0,
+                value: genderStats.inactiveFemale,
                 color: "bg-purple-500",
               },
               {
+                label: "Other",
+                value: genderStats.inactiveOther,
+                color: "bg-green-500",
+              },
+              {
                 label: "Not recorded",
-                value: report.inactive.length,
+                value:
+                  report.inactive.length -
+                  genderStats.inactiveMale -
+                  genderStats.inactiveFemale -
+                  genderStats.inactiveOther,
                 color: "bg-slate-400",
               },
             ]}
@@ -496,10 +562,9 @@ export default function Reports({ employees, files }: Props) {
         </div>
 
         <p className="text-xs text-slate-500">
-          Male and Female are shown as zero because the current Employee type
-          does not expose gender data. The Not recorded bars indicate employees
-          without an available gender value; they do not imply that the
-          employees have no gender.
+          Gender statistics are calculated from employee records currently
+          loaded by the application. Not recorded includes missing or
+          unrecognized gender values.
         </p>
       </section>
 
@@ -507,14 +572,30 @@ export default function Reports({ employees, files }: Props) {
       <section className="space-y-4">
         <SectionTitle
           title="Inactive Employees by Reason"
-          description="Inactive employee reasons will appear when those reasons are stored in employee records."
+          description="Inactive employee reasons are based on the values stored in employee records."
         />
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard label="Retired" value="Unavailable" color="blue" />
-          <MetricCard label="Resigned" value="Unavailable" color="amber" />
-          <MetricCard label="Deceased" value="Unavailable" color="red" />
-          <MetricCard label="Transferred" value="Unavailable" color="purple" />
+          <MetricCard
+            label="Retired"
+            value={inactiveReasonStats.retired}
+            color="blue"
+          />
+          <MetricCard
+            label="Resigned"
+            value={inactiveReasonStats.resigned}
+            color="amber"
+          />
+          <MetricCard
+            label="Deceased"
+            value={inactiveReasonStats.deceased}
+            color="red"
+          />
+          <MetricCard
+            label="Transferred"
+            value={inactiveReasonStats.transferred}
+            color="purple"
+          />
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
@@ -523,23 +604,33 @@ export default function Reports({ employees, files }: Props) {
             items={[
               {
                 label: "Retired",
-                value: 0,
+                value: inactiveReasonStats.retired,
                 color: "bg-blue-500",
               },
               {
                 label: "Resigned",
-                value: 0,
+                value: inactiveReasonStats.resigned,
                 color: "bg-amber-500",
               },
               {
                 label: "Deceased",
-                value: 0,
+                value: inactiveReasonStats.deceased,
                 color: "bg-red-500",
               },
               {
                 label: "Transferred",
-                value: 0,
+                value: inactiveReasonStats.transferred,
                 color: "bg-purple-500",
+              },
+              {
+                label: "Other / not recorded",
+                value:
+                  report.inactive.length -
+                  inactiveReasonStats.retired -
+                  inactiveReasonStats.resigned -
+                  inactiveReasonStats.deceased -
+                  inactiveReasonStats.transferred,
+                color: "bg-slate-400",
               },
             ]}
           />
@@ -552,19 +643,19 @@ export default function Reports({ employees, files }: Props) {
             <div className="space-y-3 text-sm">
               <p className="flex justify-between">
                 <span>Retired</span>
-                <strong>Unavailable</strong>
+                <strong>{inactiveReasonStats.retired}</strong>
               </p>
               <p className="flex justify-between">
                 <span>Resigned</span>
-                <strong>Unavailable</strong>
+                <strong>{inactiveReasonStats.resigned}</strong>
               </p>
               <p className="flex justify-between">
                 <span>Deceased</span>
-                <strong>Unavailable</strong>
+                <strong>{inactiveReasonStats.deceased}</strong>
               </p>
               <p className="flex justify-between">
                 <span>Transferred</span>
-                <strong>Unavailable</strong>
+                <strong>{inactiveReasonStats.transferred}</strong>
               </p>
               <p className="flex justify-between border-t pt-3">
                 <span>Total inactive employees</span>
@@ -573,8 +664,8 @@ export default function Reports({ employees, files }: Props) {
             </div>
 
             <p className="mt-4 text-xs text-slate-500">
-              The reason counts are unavailable until employee records include
-              an inactive-reason field.
+              Counts reflect the inactive-reason values available in the
+              employee records loaded by the application.
             </p>
           </div>
         </div>
@@ -588,10 +679,7 @@ export default function Reports({ employees, files }: Props) {
         />
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <MetricCard
-            label="Total Files"
-            value={summary.totalFiles}
-          />
+          <MetricCard label="Total Files" value={summary.totalFiles} />
           <MetricCard
             label="Incoming"
             value={summary.incomingFiles}
