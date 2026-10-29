@@ -162,6 +162,16 @@ const translations = {
 
 const t = translations[language];
 
+function handleLanguageChange(nextLanguage: "English" | "Amharic") {
+  setLanguage(nextLanguage);
+
+  try {
+    localStorage.setItem("officeLanguage", nextLanguage);
+  } catch (error) {
+    console.error("Could not save language preference:", error);
+  }
+}
+
   
 const [profile, setProfile] = useState({
   fullName: "",
@@ -262,6 +272,19 @@ useEffect(() => {
     setEditProfile(updatedProfile);
   } catch (error) {
     console.error("Unable to load profile:", error);
+  }
+}, []);
+
+
+useEffect(() => {
+  try {
+    const savedLanguage = localStorage.getItem("officeLanguage");
+
+    if (savedLanguage === "English" || savedLanguage === "Amharic") {
+      setLanguage(savedLanguage);
+    }
+  } catch (error) {
+    console.error("Could not load language preference:", error);
   }
 }, []);
 
@@ -747,7 +770,7 @@ if (data.attachments.length > 0) {
           : activeMenu
       }
       language={language}
-      onLanguageChange={setLanguage}
+     onLanguageChange={handleLanguageChange}
     />
 
 
@@ -996,9 +1019,9 @@ onSubmit={async (event) => {
 
         <select
           value={language}
-          onChange={(event) =>
-            setLanguage(event.target.value as "English" | "Amharic")
-          }
+         onChange={(event) =>
+  handleLanguageChange(event.target.value as "English" | "Amharic")
+}
           className="rounded-lg border border-[#E2E6ED] bg-white px-3 py-2"
         >
           <option value="English">English</option>

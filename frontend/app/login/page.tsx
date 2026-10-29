@@ -210,20 +210,6 @@ localStorage.setItem("currentUser", JSON.stringify(user));
               </p>
             </div>
 
-            {/* Demo notice */}
-            <div
-              role="status"
-              className="mb-6 rounded-xl border border-[#D6E2E8] bg-[#F4F8FA] p-3.5"
-            >
-              <p className="text-sm font-semibold text-[#0A506E]">
-                Frontend demo mode
-              </p>
-              <p className="mt-1 text-xs leading-5 text-[#737B86]">
-                Any non-empty email and password will continue to the
-                dashboard. No account is verified yet.
-              </p>
-            </div>
-
             <form onSubmit={handleLogin} className="space-y-5">
               <div>
                 <label
@@ -253,7 +239,6 @@ localStorage.setItem("currentUser", JSON.stringify(user));
                   >
                     Password
                   </label>
-                  <span className="text-xs text-[#9298A1]">Demo only</span>
                 </div>
 
                 <div className="relative">
@@ -295,7 +280,7 @@ localStorage.setItem("currentUser", JSON.stringify(user));
                 </label>
 
                 <span
-                  title="Password recovery is not available in demo mode."
+                  title="Please contact your system administrator to reset your password."
                   className="cursor-not-allowed text-sm text-[#9298A1]"
                 >
                   Forgot password?
@@ -316,7 +301,7 @@ localStorage.setItem("currentUser", JSON.stringify(user));
                 disabled={loading}
                 className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#0A506E] px-4 text-sm font-semibold text-white shadow-sm transition duration-200 hover:bg-[#176A87] focus:outline-none focus:ring-4 focus:ring-[#E7F1F5] active:bg-[#135B74] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {loading ? "Opening dashboard..." : "Sign in"}
+                {loading ? "Signing in..." : "Sign in"}
                 {!loading && <ArrowRight size={17} />}
               </button>
             </form>
@@ -337,7 +322,7 @@ localStorage.setItem("currentUser", JSON.stringify(user));
               <p>
                 Authorized office personnel only.
                 <br />
-                Secure authentication will be added with the backend.
+                Sign in with your authorized office account.
               </p>
             </div>
           </div>
