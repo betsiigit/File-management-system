@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/branches")
-@PreAuthorize("hasRole('ADMIN')")
 public class BranchController {
 
     private final BranchRepository branchRepository;
@@ -24,6 +23,9 @@ public class BranchController {
         this.branchRepository = branchRepository;
     }
 
+    /**
+     * Admin and Registrar can view the list of branches.
+     */
     @GetMapping
     public List<BranchResponse> getBranches() {
         return branchRepository.findAll()
@@ -35,13 +37,19 @@ public class BranchController {
                 .toList();
     }
 
+    /**
+     * Only Admin can create a branch.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<?> createBranch(
             @RequestBody CreateBranchRequest request) {
 
         if (request.name() == null || request.name().isBlank()) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Branch name is required."));
+                    .body(Map.of(
+                            "message",
+                            "Branch name is required."));
         }
 
         String name = request.name().trim();
@@ -75,4 +83,3 @@ public class BranchController {
             boolean active) {
     }
 }
-

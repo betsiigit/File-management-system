@@ -57,6 +57,7 @@ type Language = "English" | "Amharic";
 type SidebarProps = {
   activeMenu: string;
   onNavigate: (menu: string) => void;
+ userRole: "ADMIN" | "REGISTRAR" | "OFFICER" | "VIEWER" | "";
   language?: Language;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
@@ -65,6 +66,7 @@ type SidebarProps = {
 export default function Sidebar({
   activeMenu,
   onNavigate,
+  userRole,
   language = "English",
   collapsed = false,
   onToggleCollapse,
@@ -98,10 +100,18 @@ export default function Sidebar({
     { key: "Reports", label: st.Reports, icon: ChartNoAxesColumn },
   ];
 
-  const adminMenuItems = [
-    { key: "User Management", label: st["User Management"], icon: Users },
-    { key: "About", label: st.About, icon: Info },
-  ];
+const adminMenuItems = [
+  ...(userRole === "ADMIN"
+    ? [
+        {
+          key: "User Management",
+          label: st["User Management"],
+          icon: Users,
+        },
+      ]
+    : []),
+  { key: "About", label: st.About, icon: Info },
+];
 
   const renderMenuItems = (
     items: typeof mainMenuItems | typeof adminMenuItems

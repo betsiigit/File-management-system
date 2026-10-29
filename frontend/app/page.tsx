@@ -20,9 +20,11 @@ import UserManagement from "@/components/users/UserManagement";
 import About from "@/components/About";
 import Reports from "@/components/reports/Reports";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+type UserRole = "ADMIN" | "REGISTRAR" | "OFFICER" | "VIEWER";
 
 
 type OfficeFile = {
+  
   id: number;
   reference: string;
   volume: string;
@@ -176,11 +178,10 @@ function handleLanguageChange(nextLanguage: "English" | "Amharic") {
 const [profile, setProfile] = useState({
   fullName: "",
   email: "",
-  role: "",
+  role: "" as UserRole | "",
   branchName: null as string | null,
   department: "Administration",
 });
-
 const [editProfile, setEditProfile] = useState(profile);
 const [profileMessage, setProfileMessage] = useState("");
 
@@ -830,13 +831,14 @@ if (data.attachments.length > 0) {
     sidebarCollapsed ? "md:ml-20" : "md:ml-64"
   }`}
 >
-  <Sidebar
-    activeMenu={activeMenu}
-    onNavigate={handleNavigate}
-    language={language}
-    collapsed={sidebarCollapsed}
-    onToggleCollapse={() => setSidebarCollapsed((previous) => !previous)}
-  />
+<Sidebar
+  activeMenu={activeMenu}
+  onNavigate={setActiveMenu}
+  language={language}
+  collapsed={sidebarCollapsed}
+  onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+  userRole={profile.role}
+/>
 
   <section className="min-w-0 flex-1 bg-[var(--background)]">
     <Header
@@ -1501,7 +1503,9 @@ onSubmit={async (event) => {
 {activeMenu === "File Transfers" && <FileTransfers />}
 
 {activeMenu === "Various Jobs" && <VariousJobs />}
-{activeMenu === "User Management" && <UserManagement />}
+{activeMenu === "User Management" && profile.role === "ADMIN" && (
+  <UserManagement userRole={profile.role} />
+)}
 
 {activeMenu === "About" && <About />}
 {activeMenu === "Reports" ? (

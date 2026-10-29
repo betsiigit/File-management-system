@@ -5,11 +5,17 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 type Role = "ADMIN" | "REGISTRAR" | "OFFICER" | "VIEWER";
 
+
+type UserManagementProps = {
+  userRole: Role;
+};
+
 type User = {
   id: number;
   fullName: string;
   email: string;
   role: Role;
+ 
   active: boolean;
   branchId: number | null;
   branchName?: string | null;
@@ -31,7 +37,21 @@ const roleLabels: Record<Role, string> = {
   VIEWER: "Viewer",
 };
 
-export default function UserManagement() {
+export default function UserManagement({
+  userRole,
+}: UserManagementProps) {
+  if (userRole !== "ADMIN") {
+    return (
+      <div className="rounded-xl border border-[#ECEFF2] bg-white p-6">
+        <h3 className="text-lg font-bold text-[#292D32]">
+          Access Restricted
+        </h3>
+        <p className="mt-2 text-sm text-[#737B86]">
+          Only administrators can access User Management.
+        </p>
+      </div>
+    );
+  }
   const [users, setUsers] = useState<User[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
 
