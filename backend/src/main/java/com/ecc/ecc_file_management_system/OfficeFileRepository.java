@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDate;
 
 @Repository
 public interface OfficeFileRepository
@@ -27,4 +28,16 @@ public interface OfficeFileRepository
     List<OfficeFile> findByFileTypeIgnoreCase(String fileType);
 
     List<OfficeFile> findByAssignedOfficerIgnoreCase(String assignedOfficer);
+
+
+    // Report counts
+long countByStatusIgnoreCase(String status);
+
+long countByFileTypeIgnoreCase(String fileType);
+
+// Date-filtered report
+long countByRegistrationDateBetween(
+        LocalDate startDate,
+        LocalDate endDate
+);
 }
