@@ -8,6 +8,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import java.time.LocalDate;
+
 @Entity
 @Table(name = "employees")
 public class Employee {
@@ -31,8 +33,17 @@ public class Employee {
     @Column(nullable = false)
     private String status;
 
-    @Column(nullable = true)
-private String gender;
+    @Column(name = "gender")
+    private String gender;
+
+    @Column(name = "inactive_reason")
+    private String inactiveReason;
+
+    @Column(name = "inactive_date")
+    private LocalDate inactiveDate;
+
+    @Column(name = "inactive_remarks", columnDefinition = "TEXT")
+    private String inactiveRemarks;
 
     public Employee() {
     }
@@ -82,10 +93,34 @@ private String gender;
     }
 
     public String getGender() {
-    return gender;
-}
+        return gender;
+    }
 
-public void setGender(String gender) {
-    this.gender = gender;
-}
+    public void setGender(String gender) {
+        this.gender = gender;
+    }
+
+    public String getInactiveReason() {
+        return inactiveReason;
+    }
+
+    public void setInactiveReason(String inactiveReason) {
+        this.inactiveReason = inactiveReason;
+    }
+
+    public LocalDate getInactiveDate() {
+        return inactiveDate;
+    }
+
+    public void setInactiveDate(LocalDate inactiveDate) {
+        this.inactiveDate = inactiveDate;
+    }
+
+    public String getInactiveRemarks() {
+        return inactiveRemarks;
+    }
+
+    public void setInactiveRemarks(String inactiveRemarks) {
+        this.inactiveRemarks = inactiveRemarks;
+    }
 }

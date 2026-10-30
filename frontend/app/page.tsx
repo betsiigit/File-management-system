@@ -512,6 +512,47 @@ async function loadEmployees() {
   }
 }
 
+
+type EmployeeStatusUpdate = {
+  status: "Active" | "Inactive";
+  inactiveReason?: string;
+  inactiveDate?: string;
+  inactiveRemarks?: string;
+};
+
+async function handleUpdateEmployeeStatus(
+  employeeId: number,
+  update: EmployeeStatusUpdate
+) {
+  const response = await fetch(
+    `http://localhost:8081/api/employees/${employeeId}/status`,
+    {
+      method: "PUT",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(update),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+
+    throw new Error(
+      errorText || `Unable to update employee (${response.status}).`
+    );
+  }
+
+  await loadEmployees();
+
+  setEmployeeNotice(
+    update.status === "Inactive"
+      ? "Employee deactivated successfully."
+      : "Employee reactivated successfully."
+  );
+}
+
   function handleNavigate(menu: string) {
     setActiveMenu(menu);
     setProfileView(null);
@@ -1430,6 +1471,7 @@ onSubmit={async (event) => {
             )
         )}
         status="Active"
+        onUpdateStatus={handleUpdateEmployeeStatus}
       />
     )}
   </div>
@@ -1504,6 +1546,7 @@ onSubmit={async (event) => {
       <EmployeeTable
         employees={employees}
         status="Inactive"
+        onUpdateStatus={handleUpdateEmployeeStatus}
       />
     )}
   </div>
