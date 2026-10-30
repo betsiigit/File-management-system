@@ -3,9 +3,12 @@ package com.ecc.ecc_file_management_system;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 import java.time.LocalDate;
@@ -44,6 +47,11 @@ public class Employee {
 
     @Column(name = "inactive_remarks", columnDefinition = "TEXT")
     private String inactiveRemarks;
+
+    // Branch assigned to this employee
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "branch_id")
+    private Branch branch;
 
     public Employee() {
     }
@@ -122,5 +130,13 @@ public class Employee {
 
     public void setInactiveRemarks(String inactiveRemarks) {
         this.inactiveRemarks = inactiveRemarks;
+    }
+
+    public Branch getBranch() {
+        return branch;
+    }
+
+    public void setBranch(Branch branch) {
+        this.branch = branch;
     }
 }
