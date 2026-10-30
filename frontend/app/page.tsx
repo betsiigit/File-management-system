@@ -552,13 +552,13 @@ async function handleUpdateEmployeeStatus(
       : "Employee reactivated successfully."
   );
 }
-
-  function handleNavigate(menu: string) {
-    setActiveMenu(menu);
-    setProfileView(null);
-    setNotice("");
-    setShowForm(menu === "Register File");
-  }
+function handleNavigate(menu: string) {
+  setActiveMenu(menu);
+  setProfileView(null);
+  setSelectedFile(null);
+  setNotice("");
+  setShowForm(menu === "Register File");
+}
   
 
 async function handleSaveEmployee(
@@ -883,7 +883,7 @@ if (data.attachments.length > 0) {
 >
 <Sidebar
   activeMenu={activeMenu}
-  onNavigate={setActiveMenu}
+onNavigate={handleNavigate}
   language={language}
   collapsed={sidebarCollapsed}
   onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -1563,17 +1563,15 @@ onSubmit={async (event) => {
 {activeMenu === "Reports" ? (
   <Reports employees={employees} files={files} />
 ) : null}
-
 {activeMenu !== "Active Employees" &&
   activeMenu !== "Inactive Employees" &&
   activeMenu !== "File Transfers" &&
   activeMenu !== "Various Jobs" &&
   activeMenu !== "User Management" &&
-activeMenu !== "About" &&
+  activeMenu !== "About" &&
   activeMenu !== "Reports" && (
     <>
-    
-      {showForm ? (
+      {activeMenu === "Register File" && showForm ? (
         <FileRegistrationForm
           departments={departments}
           onRegister={registerFile}
@@ -1583,14 +1581,12 @@ activeMenu !== "About" &&
             setNotice("");
           }}
         />
-      ) : (
+      ) : activeMenu === "All Files" || activeMenu === "Dashboard" ? (
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="text-lg font-semibold tracking-tight text-[#292D32]">
-                {activeMenu === "Dashboard"
-                  ? "Recent Files"
-                  : activeMenu}
+                {activeMenu === "Dashboard" ? "Recent Files" : "All Files"}
               </h3>
               <p className="mt-1 text-sm text-[#7B8492]">
                 Search and manage your office file records.
@@ -1600,57 +1596,59 @@ activeMenu !== "About" &&
             <button
               type="button"
               onClick={() => handleNavigate("Register File")}
-             className="rounded-lg bg-[#0A506E] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-[#176A87] active:bg-[#135B74] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A506E]/30 focus-visible:ring-offset-2"
+              className="rounded-lg bg-[#0A506E] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-[#176A87] active:bg-[#135B74]"
             >
               + Register New File
             </button>
           </div>
 
-          
-{selectedFile ? (
-  <FileDetails
-    file={selectedFile}
-    onBack={() => setSelectedFile(null)}
-    onFileUpdated={(updatedFile) => {
-      setFiles((currentFiles) =>
-        currentFiles.map((currentFile) =>
-          currentFile.id === updatedFile.id
-            ? { ...currentFile, ...updatedFile }
-            : currentFile
-        )
-      );
-      setSelectedFile(updatedFile);
-      setNotice("File updated successfully.");
-    }}
-    onFileDeleted={(deletedId) => {
-      setFiles((currentFiles) =>
-        currentFiles.filter((currentFile) => currentFile.id !== deletedId)
-      );
-      setSelectedFile(null);
-      setNotice("File deleted successfully.");
-    }}
-  />
-) : (
-  <FileTable
-    files={files}
-    onViewFile={setSelectedFile}
-  />
-)}
-
+          {selectedFile ? (
+            <FileDetails
+              file={selectedFile}
+              onBack={() => setSelectedFile(null)}
+              onFileUpdated={(updatedFile) => {
+                setFiles((currentFiles) =>
+                  currentFiles.map((currentFile) =>
+                    currentFile.id === updatedFile.id
+                      ? { ...currentFile, ...updatedFile }
+                      : currentFile
+                  )
+                );
+                setSelectedFile(updatedFile);
+                setNotice("File updated successfully.");
+              }}
+              onFileDeleted={(deletedId) => {
+                setFiles((currentFiles) =>
+                  currentFiles.filter(
+                    (currentFile) => currentFile.id !== deletedId
+                  )
+                );
+                setSelectedFile(null);
+                setNotice("File deleted successfully.");
+              }}
+            />
+          ) : (
+            <FileTable
+              files={files}
+              onViewFile={setSelectedFile}
+            />
+          )}
         </>
-      )}
-
-      <p className="text-xs text-[#929BA8]">
-        Frontend demo · Records are temporary and will reset on refresh.
-      </p>
-    </>
-  )}
-
-       
+      ) : (
+        <div className="rounded-xl border border-[#ECEFF2] bg-white p-8 text-center">
+          <h3 className="text-lg font-semibold text-[#292D32]">
+            {activeMenu}
+          </h3>
+          <p className="mt-2 text-sm text-[#7B8492]">
+            This section is not configured yet.
+          </p>
         </div>
       )}
-      </section>
-    </main>
-  );
+    </>
+  )}
+  </div>
+)}
+  </section>
+</main>
+);
 }
-

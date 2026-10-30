@@ -23,6 +23,11 @@ export type Employee = {
   fullName: string;
   department: string;
   position: string;
+  branch?: {
+    id: number;
+    name: string;
+    active: boolean;
+  } | null;
   status: "Active" | "Inactive";
   gender?: "Male" | "Female" | "Other" | "";
   inactiveReason?:
@@ -185,12 +190,13 @@ export default function EmployeeTable({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[940px] text-left text-sm">
+          <table className="w-full min-w-[1080px] text-left text-sm">
             <thead className="bg-[#F8FAFB] text-xs uppercase tracking-wide text-[#737B86]">
               <tr>
                 <th className="px-5 py-4 font-semibold">Employee ID</th>
                 <th className="px-5 py-4 font-semibold">Full Name</th>
                 <th className="px-5 py-4 font-semibold">Department</th>
+                <th className="px-5 py-4 font-semibold">Branch</th>
                 <th className="px-5 py-4 font-semibold">Position</th>
                 <th className="px-5 py-4 font-semibold">Gender</th>
                 <th className="px-5 py-4 font-semibold">Status</th>
@@ -204,7 +210,7 @@ export default function EmployeeTable({
               {filteredEmployees.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-5 py-12 text-center text-[#737B86]"
                   >
                     No {status.toLowerCase()} employees found.
@@ -226,6 +232,13 @@ export default function EmployeeTable({
 
                     <td className="px-5 py-4 text-[#737B86]">
                       {employee.department}
+                    </td>
+
+                    <td className="px-5 py-4">
+                      <span className="inline-flex items-center gap-2 rounded-full bg-[#E7F1F5] px-3 py-1 text-xs font-semibold text-[#0A506E]">
+                        <Building2 size={14} />
+                        {employee.branch?.name || "Not assigned"}
+                      </span>
                     </td>
 
                     <td className="px-5 py-4 text-[#737B86]">
@@ -340,6 +353,11 @@ export default function EmployeeTable({
                     icon={Building2}
                     label="Department"
                     value={selectedEmployee.department}
+                  />
+                  <DetailRow
+                    icon={Building2}
+                    label="Branch"
+                    value={selectedEmployee.branch?.name}
                   />
                   <DetailRow
                     icon={BriefcaseBusiness}
