@@ -160,6 +160,7 @@ export default function Reports({ employees, files }: Props) {
   const [appliedFrom, setAppliedFrom] = useState("");
   const [appliedTo, setAppliedTo] = useState("");
   const [dateError, setDateError] = useState("");
+  const [selectedReportBranch, setSelectedReportBranch] = useState("All");
 
   const [summary, setSummary] = useState<ReportSummary>(emptySummary);
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -178,6 +179,11 @@ export default function Reports({ employees, files }: Props) {
 
         if (appliedFrom) params.set("startDate", appliedFrom);
         if (appliedTo) params.set("endDate", appliedTo);
+
+        // Send the selected branch to the backend unless All is selected.
+        if (selectedReportBranch !== "All") {
+          params.set("department", selectedReportBranch);
+        }
 
         const query = params.toString();
         const url = `http://localhost:8081/api/reports/summary${
@@ -217,7 +223,7 @@ export default function Reports({ employees, files }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [appliedFrom, appliedTo, refreshKey]);
+  }, [appliedFrom, appliedTo, selectedReportBranch, refreshKey]);
 
   // Calculate employee and file information for the selected date range.
   const report = useMemo(() => {
@@ -230,6 +236,14 @@ export default function Reports({ employees, files }: Props) {
     );
 
     const filteredFiles = files.filter((file) => {
+      if (
+        selectedReportBranch !== "All" &&
+        file.department?.trim().toLowerCase() !==
+          selectedReportBranch.trim().toLowerCase()
+      ) {
+        return false;
+      }
+
       const date = file.date?.slice(0, 10);
 
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date || "")) {
@@ -266,7 +280,7 @@ export default function Reports({ employees, files }: Props) {
         0
       ),
     };
-  }, [employees, files, appliedFrom, appliedTo]);
+  }, [employees, files, appliedFrom, appliedTo, selectedReportBranch]);
 
   // Calculate actual gender statistics from employee records.
   const genderStats = useMemo(() => {
@@ -342,6 +356,7 @@ export default function Reports({ employees, files }: Props) {
     setToDate("");
     setAppliedFrom("");
     setAppliedTo("");
+    setSelectedReportBranch("All");
     setDateError("");
   }
 
@@ -383,7 +398,7 @@ export default function Reports({ employees, files }: Props) {
           browser&apos;s Gregorian calendar.
         </p>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <label className="text-sm font-medium text-slate-700">
             From
             <input
@@ -402,6 +417,28 @@ export default function Reports({ employees, files }: Props) {
               onChange={(event) => setToDate(event.target.value)}
               className="mt-2 block w-full rounded-lg border border-slate-300 p-2.5"
             />
+          </label>
+
+          <label className="text-sm font-medium text-slate-700">
+            Branch / Department
+            <select
+              value={selectedReportBranch}
+              onChange={(event) => setSelectedReportBranch(event.target.value)}
+              className="mt-2 block w-full rounded-lg border border-slate-300 bg-white p-2.5"
+            >
+              <option value="All">All branches</option>
+              {[...new Set(
+                files
+                  .map((file) => file.department?.trim())
+                  .filter((department): department is string => Boolean(department))
+              )]
+                .sort((a, b) => a.localeCompare(b))
+                .map((department) => (
+                  <option key={department} value={department}>
+                    {department}
+                  </option>
+                ))}
+            </select>
           </label>
 
           <button
@@ -801,7 +838,7 @@ export default function Reports({ employees, files }: Props) {
                     colSpan={9}
                     className="px-4 py-8 text-center text-slate-500"
                   >
-                    No files match the selected date range.
+                    No files match the selected branch and date range.
                   </td>
                 </tr>
               ) : (

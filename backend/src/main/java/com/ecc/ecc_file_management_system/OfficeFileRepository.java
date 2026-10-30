@@ -7,16 +7,27 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 import java.time.LocalDate;
+import java.util.stream.Stream;
 
 @Repository
 public interface OfficeFileRepository
         extends JpaRepository<OfficeFile, Long> {
+
+    
+
+
 
     Optional<OfficeFile> findByReferenceNumber(String referenceNumber);
 
     boolean existsByReferenceNumber(String referenceNumber);
 
     List<OfficeFile> findByBranchId(Long branchId);
+    
+// Branch-specific report with date range
+List<OfficeFile> findByBranchIdAndRegistrationDateBetween(
+        Long branchId,
+        LocalDate startDate,
+        LocalDate endDate);
 
     Optional<OfficeFile> findByIdAndBranchId(Long id, Long branchId);
 

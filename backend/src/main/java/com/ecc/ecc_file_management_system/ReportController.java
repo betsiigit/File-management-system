@@ -28,18 +28,36 @@ public class ReportController {
 
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate endDate) {
+            LocalDate endDate,
 
+            @RequestParam(required = false)
+            String department) {
+
+        // Require both dates or neither.
         if ((startDate == null) != (endDate == null)) {
             throw new IllegalArgumentException(
                     "Provide both startDate and endDate.");
         }
 
+        // Validate the date range.
         if (startDate != null && endDate.isBefore(startDate)) {
             throw new IllegalArgumentException(
                     "endDate must be on or after startDate.");
         }
 
-        return reportService.getSummary(startDate, endDate);
+        // Treat blank department or "All" as no branch filter.
+        if (department != null) {
+            department = department.trim();
+
+            if (department.isEmpty()
+                    || department.equalsIgnoreCase("All")) {
+                department = null;
+            }
+        }
+
+        return reportService.getSummary(
+                startDate,
+                endDate,
+                department);
     }
 }
