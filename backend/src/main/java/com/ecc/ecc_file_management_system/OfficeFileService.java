@@ -70,18 +70,17 @@ public class OfficeFileService {
         return officeFileRepository.save(officeFile);
     }
 
-    @Transactional(readOnly = true)
-    public List<OfficeFile> getAllFiles() {
-        AppUser currentUser = currentUserService.getCurrentUser();
+@Transactional(readOnly = true)
+public List<OfficeFile> getAllFiles() {
+    AppUser currentUser = currentUserService.getCurrentUser();
 
-        if (isAdmin(currentUser)) {
-            return officeFileRepository.findAll();
-        }
-
-        Long branchId = requireBranchId(currentUser);
-        return officeFileRepository.findByBranchId(branchId);
+    if (isAdmin(currentUser)) {
+        return officeFileRepository.findAll();
     }
 
+    Long branchId = requireBranchId(currentUser);
+    return officeFileRepository.findByBranchId(branchId);
+}
     @Transactional(readOnly = true)
     public OfficeFile getFileById(Long id) {
         AppUser currentUser = currentUserService.getCurrentUser();
@@ -184,17 +183,25 @@ public class OfficeFileService {
         officeFileRepository.delete(existingFile);
     }
 
-    private boolean isAdmin(AppUser user) {
-        return user.getRole() != null
-                && "ADMIN".equalsIgnoreCase(user.getRole().trim());
-    }
-
+   private boolean isAdmin(AppUser user) {
+    return user.getRole() != null
+            && "SYSTEM_ADMIN".equalsIgnoreCase(user.getRole().trim());
+}
     private Long requireBranchId(AppUser user) {
-        if (user.getBranch() == null || user.getBranch().getId() == null) {
-            throw new AccessDeniedException(
-                    "Your account does not have a branch assigned.");
-        }
 
-        return user.getBranch().getId();
+    // System Admin manages files across all branches.
+    if ("SYSTEM_ADMIN".equalsIgnoreCase(user.getRole())) {
+        return null;
     }
+
+    // All other users must have an assigned branch.
+    if (user.getBranch() == null
+            || user.getBranch().getId() == null) {
+        throw new AccessDeniedException(
+                "Your account does not have a branch assigned.");
+    }
+
+    // Branch users are restricted to their assigned branch.
+    return user.getBranch().getId();
+}
 }

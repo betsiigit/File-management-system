@@ -12,10 +12,30 @@ import {
   ChartNoAxesColumn,
   Users,
   Info,
+  Building2,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
 import Image from "next/image";
+
+type Language = "English" | "Amharic";
+type UserRole =
+  | "SYSTEM_ADMIN"
+  | "BRANCH_ADMIN"
+  | "REGISTRAR"
+  | "OFFICER"
+  | "VIEWER"
+  | "ADMIN"
+  | "";
+
+type SidebarProps = {
+  activeMenu: string;
+  onNavigate: (menu: string) => void;
+  userRole: UserRole;
+  language?: Language;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+};
 
 const sidebarTranslations = {
   English: {
@@ -27,12 +47,11 @@ const sidebarTranslations = {
     "Active Employees": "Active Employees",
     "Inactive Employees": "Inactive Employees",
     Reports: "Reports",
+    "Branch Management": "Branch Management",
     "User Management": "User Management",
     About: "About",
     "Main Menu": "Main Menu",
-    Admin: "Admin",
-    "Office Files": "Office Files",
-    "Management System": "Management System",
+    Admin: "Administration",
   },
   Amharic: {
     Dashboard: "ዳሽቦርድ",
@@ -43,24 +62,12 @@ const sidebarTranslations = {
     "Active Employees": "ንቁ ሰራተኞች",
     "Inactive Employees": "ንቁ ያልሆኑ ሰራተኞች",
     Reports: "ሪፖርቶች",
+    "Branch Management": "የቅርንጫፍ አስተዳደር",
     "User Management": "የተጠቃሚ አስተዳደር",
     About: "ስለ ስርዓቱ",
     "Main Menu": "ዋና ምናሌ",
-    Admin: "አስተዳዳሪ",
-    "Office Files": "የቢሮ ፋይሎች",
-    "Management System": "የአስተዳደር ስርዓት",
+    Admin: "አስተዳደር",
   },
-};
-
-type Language = "English" | "Amharic";
-
-type SidebarProps = {
-  activeMenu: string;
-  onNavigate: (menu: string) => void;
- userRole: "ADMIN" | "REGISTRAR" | "OFFICER" | "VIEWER" | "";
-  language?: Language;
-  collapsed?: boolean;
-  onToggleCollapse?: () => void;
 };
 
 export default function Sidebar({
@@ -100,18 +107,27 @@ export default function Sidebar({
     { key: "Reports", label: st.Reports, icon: ChartNoAxesColumn },
   ];
 
-const adminMenuItems = [
-  ...(userRole === "ADMIN"
-    ? [
-        {
-          key: "User Management",
-          label: st["User Management"],
-          icon: Users,
-        },
-      ]
-    : []),
-  { key: "About", label: st.About, icon: Info },
-];
+  const adminMenuItems = [
+    ...(userRole === "SYSTEM_ADMIN"
+      ? [
+          {
+            key: "Branch Management",
+            label: st["Branch Management"],
+            icon: Building2,
+          },
+        ]
+      : []),
+    ...(userRole === "SYSTEM_ADMIN" || userRole === "BRANCH_ADMIN"
+      ? [
+          {
+            key: "User Management",
+            label: st["User Management"],
+            icon: Users,
+          },
+        ]
+      : []),
+    { key: "About", label: st.About, icon: Info },
+  ];
 
   const renderMenuItems = (
     items: typeof mainMenuItems | typeof adminMenuItems
@@ -145,7 +161,6 @@ const adminMenuItems = [
                 : "shrink-0 text-[#737B86]"
             }
           />
-
           {!collapsed && <span>{item.label}</span>}
         </button>
       );
@@ -157,8 +172,6 @@ const adminMenuItems = [
         collapsed ? "md:w-20" : "md:w-64"
       }`}
     >
-      
-      {/* Logo and system name */}
       <div
         className={`flex border-b border-[#ECEFF2] py-5 ${
           collapsed
@@ -171,28 +184,27 @@ const adminMenuItems = [
             collapsed ? "justify-center" : ""
           }`}
         >
-         <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white">
-  <Image
-    src="/logo.png"
-    alt="ECC logo"
-    fill
-    sizes="40px"
-    className="object-contain"
-    priority
-  />
-</div>
+          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white">
+            <Image
+              src="/logo.png"
+              alt="ECC logo"
+              fill
+              sizes="40px"
+              className="object-contain"
+              priority
+            />
+          </div>
 
-         {!collapsed && (
-  <div className="min-w-0">
-    <h1 className="text-sm font-semibold tracking-tight text-[#292D32]">
-      ECC .FMS
-    </h1>
-
-    <p className="mt-0.5 text-[11px] text-[#737B86]">
-      Ethiopian Customs Commission
-    </p>
-  </div>
-)}
+          {!collapsed && (
+            <div className="min-w-0">
+              <h1 className="text-sm font-semibold tracking-tight text-[#292D32]">
+                ECC .FMS
+              </h1>
+              <p className="mt-0.5 text-[11px] text-[#737B86]">
+                Ethiopian Customs Commission
+              </p>
+            </div>
+          )}
         </div>
 
         {onToggleCollapse && (
@@ -212,8 +224,6 @@ const adminMenuItems = [
         )}
       </div>
 
-
-      {/* Navigation */}
       <div className="flex-1 px-3 py-5">
         {!collapsed && (
           <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#9298A1]">
@@ -236,7 +246,6 @@ const adminMenuItems = [
         </nav>
       </div>
 
-      {/* Sidebar footer */}
       {!collapsed && (
         <div className="border-t border-[#ECEFF2] px-5 py-4 text-[11px] text-[#9298A1]">
           <p>Office File Management</p>

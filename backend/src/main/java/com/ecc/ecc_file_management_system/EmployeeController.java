@@ -1,15 +1,16 @@
 
 package com.ecc.ecc_file_management_system;
 
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/employees")
@@ -32,61 +33,53 @@ public class EmployeeController {
 
     // ==========================================
     // GET ALL EMPLOYEES
-    // ADMIN: All branches
+    // SYSTEM_ADMIN: All branches
     // OTHER USERS: Their assigned branch only
     // ==========================================
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'BRANCH_ADMIN', 'REGISTRAR', 'OFFICER', 'VIEWER')")
+    @Transactional(readOnly = true)
     public ResponseEntity<?> getAllEmployees(
             Authentication authentication) {
 
-        AppUser currentUser = appUserRepository
-                .findByEmailIgnoreCase(authentication.getName())
-                .orElse(null);
+        AppUser currentUser = getCurrentUser(authentication);
 
         if (currentUser == null || !currentUser.isActive()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of(
-                            "message",
-                            "User account not found or inactive."
-                    ));
+            return unauthorized();
         }
 
-        // Admin can see all employees.
-        if ("ADMIN".equalsIgnoreCase(currentUser.getRole())) {
+        if (isSystemAdmin(currentUser)) {
             return ResponseEntity.ok(employeeRepository.findAll());
         }
 
-        // Other users must have an assigned branch.
-        if (currentUser.getBranch() == null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of(
-                            "message",
-                            "Your account has no assigned branch."
-                    ));
+        Branch branch = currentUser.getBranch();
+
+        if (branch == null || !branch.isActive()) {
+            return forbidden("Your account has no assigned active branch.");
         }
 
         return ResponseEntity.ok(
-                employeeRepository.findByBranchId(
-                        currentUser.getBranch().getId()
-                )
+                employeeRepository.findByBranchId(branch.getId())
         );
     }
 
     // ==========================================
     // REGISTER EMPLOYEE
-    // ADMIN: Can register in any active branch
-    // REGISTRAR: Can register only in own branch
+    // SYSTEM_ADMIN: Any active branch
+    // BRANCH_ADMIN: Own branch
+    // REGISTRAR: Own branch
     // ==========================================
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGISTRAR')")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'BRANCH_ADMIN', 'REGISTRAR')")
     @PostMapping
+    @Transactional
     public ResponseEntity<?> createEmployee(
             @RequestBody Employee employee,
             Authentication authentication) {
 
-        // Validate employee details.
-        if (employee.getEmployeeId() == null
+        if (employee == null
+                || employee.getEmployeeId() == null
                 || employee.getEmployeeId().isBlank()
                 || employee.getFullName() == null
                 || employee.getFullName().isBlank()
@@ -98,18 +91,12 @@ public class EmployeeController {
                 || !(employee.getStatus().equals("Active")
                 || employee.getStatus().equals("Inactive"))) {
 
-            return ResponseEntity.badRequest()
-                    .body(Map.of(
-                            "message",
-                            "Please provide valid employee details."
-                    ));
+            return badRequest("Please provide valid employee details.");
         }
 
-        // Check duplicate employee ID.
         if (employeeRepository
                 .findByEmployeeIdIgnoreCase(
-                        employee.getEmployeeId().trim()
-                )
+                        employee.getEmployeeId().trim())
                 .isPresent()) {
 
             return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -119,73 +106,45 @@ public class EmployeeController {
                     ));
         }
 
-        // Get the currently authenticated user.
-        AppUser currentUser = appUserRepository
-                .findByEmailIgnoreCase(authentication.getName())
-                .orElse(null);
+        AppUser currentUser = getCurrentUser(authentication);
 
         if (currentUser == null || !currentUser.isActive()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of(
-                            "message",
-                            "User account not found or inactive."
-                    ));
+            return unauthorized();
         }
 
         Branch branch;
 
-        // ADMIN can choose any active branch.
-        if ("ADMIN".equalsIgnoreCase(currentUser.getRole())) {
+        if (isSystemAdmin(currentUser)) {
 
             if (employee.getBranch() == null
                     || employee.getBranch().getId() == null) {
-
-                return ResponseEntity.badRequest()
-                        .body(Map.of(
-                                "message",
-                                "Please select a branch."
-                        ));
+                return badRequest("Please select a branch.");
             }
 
             branch = branchRepository
                     .findById(employee.getBranch().getId())
                     .orElse(null);
 
-        }
-        // REGISTRAR automatically uses their own branch.
-        else if ("REGISTRAR".equalsIgnoreCase(currentUser.getRole())) {
+        } else if (isBranchAdmin(currentUser)
+                || isRegistrar(currentUser)) {
 
             branch = currentUser.getBranch();
 
-            if (branch == null) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of(
-                                "message",
-                                "Your account has no assigned branch."
-                        ));
+            if (branch == null || !branch.isActive()) {
+                return forbidden(
+                        "Your account has no assigned active branch.");
             }
 
         } else {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of(
-                            "message",
-                            "You cannot register employees."
-                    ));
+            return forbidden("You cannot register employees.");
         }
 
-        // Verify that the selected branch exists and is active.
         if (branch == null || !branch.isActive()) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of(
-                            "message",
-                            "Please select a valid active branch."
-                    ));
+            return badRequest("Please select a valid active branch.");
         }
 
-        // Assign the verified branch.
         employee.setBranch(branch);
 
-        // Clean employee information.
         employee.setEmployeeId(employee.getEmployeeId().trim());
         employee.setFullName(employee.getFullName().trim());
         employee.setDepartment(employee.getDepartment().trim());
@@ -203,14 +162,23 @@ public class EmployeeController {
 
     // ==========================================
     // UPDATE EMPLOYEE STATUS
-    // ADMIN ONLY
+    // SYSTEM_ADMIN: All branches
+    // BRANCH_ADMIN: Own branch
     // ==========================================
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'BRANCH_ADMIN')")
     @PutMapping("/{id}/status")
+    @Transactional
     public ResponseEntity<?> updateEmployeeStatus(
             @PathVariable Long id,
-            @RequestBody Map<String, Object> request) {
+            @RequestBody Map<String, Object> request,
+            Authentication authentication) {
+
+        AppUser currentUser = getCurrentUser(authentication);
+
+        if (currentUser == null || !currentUser.isActive()) {
+            return unauthorized();
+        }
 
         Employee employee = employeeRepository
                 .findById(id)
@@ -218,32 +186,36 @@ public class EmployeeController {
 
         if (employee == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of(
-                            "message",
-                            "Employee not found."
-                    ));
+                    .body(Map.of("message", "Employee not found."));
+        }
+
+        // Branch Admin cannot update employees belonging to another branch.
+        if (isBranchAdmin(currentUser)) {
+            if (currentUser.getBranch() == null
+                    || employee.getBranch() == null
+                    || !currentUser.getBranch().getId()
+                            .equals(employee.getBranch().getId())) {
+                return forbidden(
+                        "You cannot update employees outside your branch.");
+            }
+        } else if (!isSystemAdmin(currentUser)) {
+            return forbidden("You cannot update employee status.");
+        }
+
+        if (request == null) {
+            return badRequest("Employee status is required.");
         }
 
         Object statusValue = request.get("status");
 
         if (!(statusValue instanceof String)) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of(
-                            "message",
-                            "A valid employee status is required."
-                    ));
+            return badRequest("A valid employee status is required.");
         }
 
         String status = ((String) statusValue).trim();
 
-        if (!status.equals("Active")
-                && !status.equals("Inactive")) {
-
-            return ResponseEntity.badRequest()
-                    .body(Map.of(
-                            "message",
-                            "Status must be Active or Inactive."
-                    ));
+        if (!status.equals("Active") && !status.equals("Inactive")) {
+            return badRequest("Status must be Active or Inactive.");
         }
 
         if (status.equals("Inactive")) {
@@ -254,12 +226,7 @@ public class EmployeeController {
 
             if (!(reasonValue instanceof String)
                     || ((String) reasonValue).isBlank()) {
-
-                return ResponseEntity.badRequest()
-                        .body(Map.of(
-                                "message",
-                                "An inactive reason is required."
-                        ));
+                return badRequest("An inactive reason is required.");
             }
 
             String reason = ((String) reasonValue).trim();
@@ -273,37 +240,21 @@ public class EmployeeController {
             );
 
             if (!allowedReasons.contains(reason)) {
-                return ResponseEntity.badRequest()
-                        .body(Map.of(
-                                "message",
-                                "Please select a valid inactive reason."
-                        ));
+                return badRequest("Please select a valid inactive reason.");
             }
 
             if (!(dateValue instanceof String)
                     || ((String) dateValue).isBlank()) {
-
-                return ResponseEntity.badRequest()
-                        .body(Map.of(
-                                "message",
-                                "An effective date is required."
-                        ));
+                return badRequest("An effective date is required.");
             }
 
             LocalDate inactiveDate;
 
             try {
-                inactiveDate = LocalDate.parse(
-                        (String) dateValue
-                );
-
+                inactiveDate = LocalDate.parse((String) dateValue);
             } catch (Exception exception) {
-
-                return ResponseEntity.badRequest()
-                        .body(Map.of(
-                                "message",
-                                "The inactive date must use YYYY-MM-DD format."
-                        ));
+                return badRequest(
+                        "The inactive date must use YYYY-MM-DD format.");
             }
 
             String remarks = remarksValue instanceof String
@@ -331,5 +282,51 @@ public class EmployeeController {
         Employee savedEmployee = employeeRepository.save(employee);
 
         return ResponseEntity.ok(savedEmployee);
+    }
+
+    // ==========================================
+    // HELPER METHODS
+    // ==========================================
+
+    private AppUser getCurrentUser(Authentication authentication) {
+
+        if (authentication == null) {
+            return null;
+        }
+
+        return appUserRepository
+                .findByEmailIgnoreCase(authentication.getName())
+                .orElse(null);
+    }
+
+    private boolean isSystemAdmin(AppUser user) {
+        return user.getRole() != null
+                && "SYSTEM_ADMIN".equalsIgnoreCase(user.getRole().trim());
+    }
+
+    private boolean isBranchAdmin(AppUser user) {
+        return user.getRole() != null
+                && "BRANCH_ADMIN".equalsIgnoreCase(user.getRole().trim());
+    }
+
+    private boolean isRegistrar(AppUser user) {
+        return user.getRole() != null
+                && "REGISTRAR".equalsIgnoreCase(user.getRole().trim());
+    }
+
+    private ResponseEntity<?> unauthorized() {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("message",
+                        "User account not found or inactive."));
+    }
+
+    private ResponseEntity<?> forbidden(String message) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("message", message));
+    }
+
+    private ResponseEntity<?> badRequest(String message) {
+        return ResponseEntity.badRequest()
+                .body(Map.of("message", message));
     }
 }

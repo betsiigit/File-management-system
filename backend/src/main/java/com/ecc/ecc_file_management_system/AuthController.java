@@ -169,7 +169,7 @@ public class AuthController {
                 Map.of("message", "Password changed successfully."));
     }
 
-    // Only Admin can reset another user's password.
+    // Only SYSTEM_ADMIN can reset another user's password.
     @PutMapping("/admin-reset-password/{userId}")
     @Transactional
     public ResponseEntity<?> adminResetPassword(
@@ -184,10 +184,10 @@ public class AuthController {
         AppUser admin = getAuthenticatedUser(authentication);
 
         if (admin.getRole() == null
-                || !"ADMIN".equalsIgnoreCase(admin.getRole())) {
+                || !"SYSTEM_ADMIN".equalsIgnoreCase(admin.getRole())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
                     Map.of("message",
-                            "Only an Admin can reset another user's password."));
+                            "Only the System Admin can reset another user's password."));
         }
 
         if (admin.getId().equals(userId)) {

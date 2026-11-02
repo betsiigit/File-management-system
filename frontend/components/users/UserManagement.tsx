@@ -3,7 +3,13 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 
-type Role = "ADMIN" | "REGISTRAR" | "OFFICER" | "VIEWER";
+type Role =
+  | "SYSTEM_ADMIN"
+  | "BRANCH_ADMIN"
+  | "REGISTRAR"
+  | "OFFICER"
+  | "VIEWER"
+  | "ADMIN";
 
 
 type UserManagementProps = {
@@ -35,6 +41,8 @@ const roleLabels: Record<Role, string> = {
   REGISTRAR: "Registrar",
   OFFICER: "Officer",
   VIEWER: "Viewer",
+  SYSTEM_ADMIN: "System Admin",
+  BRANCH_ADMIN: "Branch Admin",
 };
 
 export default function UserManagement({
