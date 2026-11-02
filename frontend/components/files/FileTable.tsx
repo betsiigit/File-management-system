@@ -1,629 +1,1278 @@
 
+
 "use client";
 
+
+
 import { useMemo, useState,useEffect } from "react";
+
 import * as XLSX from "xlsx";
 
 
 
 
+
+
+
+
+
 export type OfficeFile = {
+
   id: number;
+
   reference: string;
+
   volume: string;
+
   title: string;
+
   department: string;
+
   date: string;
+
   outgoing_date: string;
+
   status: "Pending" | "Approved" | "Archived";
+
   fileType?: "Incoming" | "Outgoing";
+
   pages?: number;
+
   assignedOfficer?: string;
+
   remarks?: string;
+
   attachmentNames?: string[];
+
   documentPath?: string;
+
 };
+
+
 
 type FileTableProps = {
+
   files: OfficeFile[];
+
   onViewFile: (file: OfficeFile) => void;
+
 };
 
-export default function FileTable({
-  files,
-  onViewFile,
-}: FileTableProps) {
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [volumeFilter, setVolumeFilter] = useState("All");
-  const [importFile, setImportFile] = useState<File | null>(null);
 
- 
+
+export default function FileTable({
+
+  files,
+
+  onViewFile,
+
+}: FileTableProps) {
+
+  const [search, setSearch] = useState("");
+
+  const [statusFilter, setStatusFilter] = useState("All");
+
+  const [volumeFilter, setVolumeFilter] = useState("All");
+
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+
+
+
+
   const filteredFiles = useMemo(() => {
+
     const query = search.trim().toLowerCase();
 
+
+
 return files.filter((file) => {
+
   const volume = file.volume ?? "";
+
   const status = file.status ?? "Pending";
 
+
+
   const matchesSearch = [
+
     file.reference,
+
     file.title,
+
     file.department,
+
     volume,
+
   ].some((value) => (value ?? "").toLowerCase().includes(query));
 
+
+
   const matchesStatus =
+
     statusFilter === "All" || status === statusFilter;
 
+
+
   const matchesVolume =
+
     volumeFilter === "All" || volume === volumeFilter;
 
+
+
   return matchesSearch && matchesStatus && matchesVolume;
+
 });
+
+
 
   }, [files, search, statusFilter, volumeFilter]);
 
- 
+  const totalPages = Math.max(1, Math.ceil(filteredFiles.length / pageSize));
+  const startIndex = (currentPage - 1) * pageSize;
+
+  const paginatedFiles = useMemo(() => {
+    return filteredFiles.slice(startIndex, startIndex + pageSize);
+  }, [filteredFiles, startIndex, pageSize]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter, volumeFilter, pageSize]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+
+
+
+
 const volumes = useMemo(
+
   () =>
+
     [...new Set(
+
       files
+
         .map((file) => file.volume ?? "")
+
         .filter((volume) => volume !== "")
+
     )].sort(),
+
   [files]
+
 );
 
 
+
+
+
 const referenceSeries = (reference: string) =>
+
   reference.trim().split("/")[0].trim();
 
+
+
 const availableReferenceSeries = useMemo(() => {
+
   return [
+
     ...new Set(
+
       files
+
         .filter((file) => file.volume === volumeFilter)
+
         .map((file) => referenceSeries(file.reference))
+
         .filter(Boolean)
+
     ),
+
   ].sort((a, b) => a.localeCompare(b));
+
 }, [files, volumeFilter]);
+
+
 
 const [referenceSeriesFilter, setReferenceSeriesFilter] = useState("All");
+
 useEffect(() => {
+
   setReferenceSeriesFilter("All");
+
 }, [volumeFilter]);
+
+
 
 const volumeFiles = useMemo(() => {
+
   return files
+
     .filter(
+
       (file) =>
+
         file.volume === volumeFilter &&
+
         (referenceSeriesFilter === "All" ||
+
           referenceSeries(file.reference) === referenceSeriesFilter)
+
     )
+
     .sort((a, b) => a.reference.localeCompare(b.reference));
+
 }, [files, volumeFilter, referenceSeriesFilter]);
 
+
+
 const availableReferenceGroups = useMemo(() => {
+
   if (volumeFilter === "All") return [];
 
+
+
   return [
+
     ...new Set(
+
       files
+
         .filter((file) => file.volume === volumeFilter)
+
         .map((file) => file.reference.trim().split("/")[0].trim())
+
         .filter(Boolean)
+
     ),
+
   ].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
 }, [files, volumeFilter]);
 
+
+
 const [selectedReferenceGroup, setSelectedReferenceGroup] =
+
   useState("");
 
+
+
 useEffect(() => {
+
   setSelectedReferenceGroup("");
+
 }, [volumeFilter]);
 
+
+
 const printVolumeFiles = useMemo(() => {
+
   if (!selectedReferenceGroup || volumeFilter === "All") return [];
 
+
+
   return files
+
     .filter(
+
       (file) =>
+
         file.volume === volumeFilter &&
+
         file.reference.trim().split("/")[0].trim() ===
+
           selectedReferenceGroup
+
     )
+
     .sort((a, b) =>
+
       a.reference.localeCompare(b.reference, undefined, {
+
         numeric: true,
+
       })
+
     );
+
 }, [files, volumeFilter, selectedReferenceGroup]);
 
 
 
+
+
+
+
 function handlePrintVolume() {
+
   if (volumeFilter === "All") {
+
     alert("Please select a volume before printing.");
+
     return;
+
   }
+
   if (!selectedReferenceGroup) {
+
   alert("Please select a reference group before printing.");
+
   return;
+
 }
+
+
 
   if (printVolumeFiles.length === 0) {
+
   alert("No records found for this reference in the selected volume.");
+
   return;
+
 }
 
+
+
   const escapeHtml = (value: string | number) =>
+
     String(value)
+
       .replace(/&/g, "&amp;")
+
       .replace(/</g, "&lt;")
+
       .replace(/>/g, "&gt;")
+
       .replace(/"/g, "&quot;")
+
       .replace(/'/g, "&#39;");
 
+
+
   // Group by the complete reference prefix before the first slash.
+
  const groupedFiles = new Map<string, typeof printVolumeFiles>();
 
+
+
 printVolumeFiles.forEach((file) => {
+
     const reference = file.reference.trim();
+
     const group = reference.split("/")[0].trim() || "Unknown";
 
+
+
     if (!groupedFiles.has(group)) {
+
       groupedFiles.set(group, []);
+
     }
 
+
+
     groupedFiles.get(group)!.push(file);
+
   });
+
+
 
   const printDate = new Date().toLocaleDateString("en-GB", {
+
     day: "2-digit",
+
     month: "long",
+
     year: "numeric",
+
   });
 
+
+
   const sortedGroups = [...groupedFiles.entries()].sort(
+
     ([a], [b]) => a.localeCompare(b, undefined, { numeric: true })
+
   );
 
+
+
   const printSections = sortedGroups
+
     .map(([group, groupFiles]) => {
+
       const sortedFiles = [...groupFiles].sort((a, b) =>
+
         a.reference.localeCompare(b.reference, undefined, {
+
           numeric: true,
+
         })
+
       );
 
+
+
       const references = sortedFiles
+
         .map((file) => file.reference.trim())
+
         .filter(Boolean)
+
         .sort((a, b) =>
+
           a.localeCompare(b, undefined, { numeric: true })
+
         );
 
+
+
       // Sort registration dates chronologically.
+
       const dates = sortedFiles
+
         .map((file) => file.date)
+
         .filter((date): date is string => Boolean(date))
+
         .sort((a, b) => {
+
           const timeA = new Date(a).getTime();
+
           const timeB = new Date(b).getTime();
 
+
+
           if (Number.isNaN(timeA) || Number.isNaN(timeB)) {
+
             return a.localeCompare(b);
+
           }
 
+
+
           return timeA - timeB;
+
         });
 
+
+
       const referenceFrom = references[0] ?? "N/A";
+
       const referenceTo = references[references.length - 1] ?? "N/A";
+
       const dateFrom = dates[0] ?? "N/A";
+
       const dateTo = dates[dates.length - 1] ?? "N/A";
 
+
+
       const rows = sortedFiles
+
         .map(
+
           (file, index) => `
+
             <tr>
+
               <td>${index + 1}</td>
+
               <td>${escapeHtml(file.reference)}</td>
+
               <td>${escapeHtml(file.outgoing_date || "")}</td>
+
               <td>${escapeHtml(file.date || "")}</td>
+
               <td>${escapeHtml(file.title)}</td>
+
               <td>${escapeHtml(file.remarks || "")}</td>
+
               <td>${file.attachmentNames?.length || 0}</td>
+
             </tr>
+
           `
+
         )
+
         .join("");
 
+
+
       return `
+
         <section class="register">
+
           <h2>OFFICE FILE REGISTER</h2>
 
+
+
           <table>
+
             <thead>
+
               <tr>
+
                 <th colspan="7" class="register-title-row">
+
                   Print Date: ${escapeHtml(printDate)}
+
                   &nbsp; | &nbsp;
+
                   Volume: ${escapeHtml(volumeFilter)}
+
                   &nbsp; | &nbsp;
+
                    ${escapeHtml(group)}
+
                   &nbsp; | &nbsp;
+
                   Ref. No.: ${escapeHtml(referenceFrom)} – ${escapeHtml(referenceTo)}
+
                   &nbsp; | &nbsp;
+
                   Registration Date: ${escapeHtml(dateFrom)} – ${escapeHtml(dateTo)}
+
                 </th>
+
               </tr>
+
               <tr>
+
                 <th>No.</th>
+
                 <th>Ref. No.</th>
+
                 <th>Outgoing Date</th>
+
                 <th>Date of Registration</th>
+
                 <th>Title</th>
+
                 <th>Description</th>
+
                 <th>Bulk</th>
+
               </tr>
+
             </thead>
+
             <tbody>${rows}</tbody>
+
           </table>
+
         </section>
+
       `;
+
     })
+
     .join("");
+
+
 
   const printWindow = window.open("", "_blank", "width=1200,height=800");
 
+
+
   if (!printWindow) {
+
     alert("Please allow pop-ups for this website, then try again.");
+
     return;
+
   }
 
+
+
   printWindow.document.open();
+
   printWindow.document.write(`
+
     <!DOCTYPE html>
+
     <html>
+
       <head>
+
         <meta charset="UTF-8" />
+
         <title>${escapeHtml(volumeFilter)} Register</title>
+
         <style>
+
           body {
+
             font-family: Arial, sans-serif;
+
             padding: 20px;
+
             color: #111;
+
           }
+
+
 
           h2 {
+
             text-align: center;
+
             margin-bottom: 14px;
+
           }
+
+
 
           table {
+
             width: 100%;
+
             border-collapse: collapse;
+
             margin-bottom: 24px;
+
           }
+
+
 
           th, td {
+
             border: 1px solid #333;
+
             padding: 8px;
+
             text-align: left;
+
             font-size: 11px;
+
           }
+
+
 
           th {
+
             background: #eee;
+
           }
+
+
 
           .register-title-row {
+
             text-align: left;
+
             white-space: nowrap;
+
             font-size: 10px;
+
             font-weight: normal;
+
             background: #fff;
+
           }
+
+
 
           .register {
+
             margin-bottom: 32px;
+
           }
+
+
 
           @media print {
+
             body {
+
               padding: 0;
+
             }
+
+
 
             .register {
+
               break-after: page;
+
             }
+
+
 
             .register:last-child {
+
               break-after: auto;
+
             }
 
+
+
             .register-title-row {
+
               background: #fff;
+
             }
+
           }
+
         </style>
+
       </head>
+
       <body>
+
         ${printSections}
+
       </body>
+
     </html>
+
   `);
+
+
 
   printWindow.document.close();
 
+
+
   printWindow.onload = () => {
+
     printWindow.focus();
+
     printWindow.print();
+
   };
+
 }
+
+
+
+
 
 
 
 function handleExportExcel() {
+
   if (volumeFilter === "All") {
+
     alert("Please select a volume before exporting.");
+
     return;
+
   }
 
+
+
   const exportData = volumeFiles.map((file, index) => ({
+
     "No.": index + 1,
+
     "Ref. No.": file.reference,
+
     "Outgoing Date": file.outgoing_date || "",
+
     "Date of Registration": file.date || "",
+
     Title: file.title,
+
     Description: file.remarks || "",
+
     Bulk: file.attachmentNames?.length || 0,
+
   }));
+
+
 
   const worksheet = XLSX.utils.json_to_sheet(exportData);
 
+
+
   worksheet["!cols"] = [
+
     { wch: 8 },
+
     { wch: 20 },
+
     { wch: 18 },
+
     { wch: 22 },
+
     { wch: 35 },
+
     { wch: 40 },
+
     { wch: 10 },
+
   ];
 
+
+
   const workbook = XLSX.utils.book_new();
+
   XLSX.utils.book_append_sheet(workbook, worksheet, "Volume Register");
 
-  const safeVolumeName = volumeFilter.replace(/[\\/:*?"<>|]/g, "_");
+
+
+  const safeVolumeName = volumeFilter.replace(/[\/:*?"<>|]/g, "_");
+
+
 
   XLSX.writeFile(workbook, `${safeVolumeName}_Register.xlsx`);
+
 }
 
+
+
 function handleImportExcel() {
+
   if (!importFile) {
+
     alert("Please select an Excel file first.");
+
     return;
+
   }
+
+
 
   const reader = new FileReader();
 
+
+
   reader.onload = (event) => {
+
     try {
+
       const data = event.target?.result;
 
+
+
       if (!data) {
+
         alert("Could not read the selected file.");
+
         return;
+
       }
+
+
 
       const workbook = XLSX.read(data, { type: "array" });
+
       const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
 
+
+
       if (!firstSheet) {
+
         alert("The Excel file has no worksheet.");
+
         return;
+
       }
+
+
 
       const rows = XLSX.utils.sheet_to_json(firstSheet, {
+
         defval: "",
+
       });
 
+
+
       if (rows.length === 0) {
+
         alert("The selected worksheet has no records.");
+
         return;
+
       }
 
+
+
       console.log("Excel rows ready for validation:", rows);
+
       alert(`Read ${rows.length} rows. Next we'll validate them before importing.`);
+
     } catch {
+
       alert("Could not read this Excel file. Please check its format.");
+
     }
+
   };
 
+
+
   reader.readAsArrayBuffer(importFile);
+
 }
 
+
+
   return (
+
     <div className="overflow-hidden rounded-xl border border-[#ECEFF2] bg-white shadow-sm">
+
       <div className="flex flex-col gap-3 border-b border-[#ECEFF2] p-4 sm:flex-row">
+
         <input
+
           value={search}
+
           onChange={(event) => setSearch(event.target.value)}
+
           placeholder="Search reference, file name, department..."
+
           aria-label="Search office files"
+
           className="min-w-0 flex-1 rounded-lg border border-[#D6E2E8] bg-white px-4 py-3 text-sm text-[#292D32] outline-none transition placeholder:text-[#9298A1] focus:border-[#0A506E] focus:ring-2 focus:ring-[#0A506E]/10"
+
         />
 
+
+
         <select
+
           value={statusFilter}
+
           onChange={(event) => setStatusFilter(event.target.value)}
+
           aria-label="Filter files by status"
+
           className="rounded-lg border border-[#D6E2E8] bg-white px-4 py-3 text-sm text-[#454B54] outline-none transition focus:border-[#0A506E] focus:ring-2 focus:ring-[#0A506E]/10"
+
         >
+
           <option value="All">All Statuses</option>
+
           <option value="Pending">Pending</option>
+
           <option value="Approved">Approved</option>
+
           <option value="Archived">Archived</option>
+
         </select>
-        
+
+
+
   <select
+
     value={volumeFilter}
+
     onChange={(event) => setVolumeFilter(event.target.value)}
+
     aria-label="Filter files by volume"
+
     className="rounded-lg border border-[#D6E2E8] bg-white px-4 py-3 text-sm text-[#454B54] outline-none transition focus:border-[#0A506E] focus:ring-2 focus:ring-[#0A506E]/10"
+
   >
+
     <option value="All">All Volumes</option>
+
     {volumes.map((volume) => (
+
       <option key={volume} value={volume}>
+
         {volume}
+
       </option>
+
     ))}
+
   </select>
 
 
+
+
+
   <select
+
   value={selectedReferenceGroup}
+
   onChange={(e) => setSelectedReferenceGroup(e.target.value)}
+
   disabled={
+
     volumeFilter === "All" ||
+
     availableReferenceGroups.length === 0
+
   }
+
   className="rounded-lg border border-gray-300 px-3 py-3 text-sm"
+
 >
+
   <option value="">Select Reference </option>
 
+
+
   {availableReferenceGroups.map((group) => (
+
     <option key={group} value={group}>
+
       {group}
+
     </option>
+
   ))}
+
 </select>
+
   <button
+
   type="button"
+
   onClick={handleExportExcel}
+
  disabled={
+
   volumeFilter === "All" ||
+
   !selectedReferenceGroup ||
+
   printVolumeFiles.length === 0
+
 }
+
   className="rounded-lg border border-[#0A506E] bg-white px-4 py-3 text-sm font-semibold text-[#0A506E] disabled:cursor-not-allowed disabled:opacity-50"
+
 >
+
   Export Excel
+
 </button>
+
 <label className="cursor-pointer rounded-lg border border-[#D6E2E8] bg-white px-4 py-3 text-sm font-semibold text-[#0A506E]">
+
   Choose Excel
+
   <input
+
     type="file"
+
     accept=".xlsx,.xls"
+
     className="hidden"
+
     onChange={(event) =>
+
       setImportFile(event.target.files?.[0] ?? null)
+
     }
+
   />
+
 </label>
+
  <button
+
   type="button"
+
   onClick={handlePrintVolume}
+
   disabled={volumeFilter === "All"}
+
   className="rounded-lg bg-[#0A506E] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+
 >
+
   Print Volume
+
 </button>
+
       </div>
+
+
 
       <div className="overflow-x-auto">
+
         <table className="w-full min-w-[720px] text-left text-sm">
+
           <thead className="bg-[#F8FAFB] text-xs uppercase tracking-wide text-[#737B86]">
+
             <tr>
+
               <th className="px-5 py-4 font-semibold">Reference No.</th>
+
               <th className="px-5 py-4 font-semibold">Volume</th>
+
               <th className="px-5 py-4 font-semibold">File Name</th>
+
               <th className="px-5 py-4 font-semibold">Department</th>
+
               <th className="px-5 py-4 font-semibold">Date</th>
+
               <th className="px-5 py-4 font-semibold">Outgoing Date</th>
+
               <th className="px-5 py-4 font-semibold">Status</th>
+
               <th className="px-5 py-4 font-semibold">Action</th>
+
             </tr>
+
           </thead>
 
-          <tbody className="divide-y divide-[#ECEFF2]">
-            {filteredFiles.map((file) => (
-              <tr
-                key={file.reference}
-                className="transition-colors duration-150 hover:bg-[#F8FAFB]"
-              >
-                <td className="whitespace-nowrap px-5 py-4 font-semibold text-[#0A506E]">
-                  {file.reference}
-                </td>
-                <td className="whitespace-nowrap px-5 py-4 text-[#737B86]">
-                   {file.volume || "—"}
-                </td> 
-                <td className="px-5 py-4 font-medium text-[#292D32]">
-                  {file.title}
-                </td>
 
-                <td className="px-5 py-4 text-[#737B86]">
-                  {file.department}
-                </td>
 
-                <td className="whitespace-nowrap px-5 py-4 text-[#737B86]">
-                  {file.date}
-                </td>
+<tbody className="divide-y divide-[#ECEFF2]">
+  {paginatedFiles.map((file) => (
+    <tr
+      key={file.id}
+      className="transition-colors duration-150 hover:bg-[#F8FAFB]"
+    >
+      <td className="whitespace-nowrap px-5 py-4 font-semibold text-[#0A506E]">
+        {file.reference}
+      </td>
 
-                <td className="whitespace-nowrap px-5 py-4 text-[#737B86]">
-                   {file.outgoing_date}
-                </td>
+      <td className="whitespace-nowrap px-5 py-4 text-[#737B86]">
+        {file.volume || "—"}
+      </td>
 
-                <td className="px-5 py-4">
-                  <span
-                    className={`inline-flex whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${
-                      file.status === "Approved"
-                        ? "bg-emerald-50 text-emerald-700"
-                        : file.status === "Pending"
-                          ? "bg-amber-50 text-amber-700"
-                          : "bg-slate-100 text-slate-600"
-                    }`}
-                  >
-                    {file.status || "Pending"}
-                  </span>
-                </td>
+      <td className="px-5 py-4 font-medium text-[#292D32]">
+        {file.title}
+      </td>
 
-                <td className="px-5 py-4">
-                  <button
-                    type="button"
-                    onClick={() => onViewFile(file)}
-                    className="whitespace-nowrap rounded-lg border border-[#D6E2E8] bg-white px-3 py-2 text-xs font-semibold text-[#0A506E] transition-colors duration-200 hover:border-[#0A506E] hover:bg-[#E7F1F5] active:bg-[#D9EAF0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A506E]/30"
-                  >
-                    View Details
-                  </button>
+      <td className="px-5 py-4 text-[#737B86]">
+        {file.department}
+      </td>
 
-                </td>
-              </tr>
-            ))}
+      <td className="whitespace-nowrap px-5 py-4 text-[#737B86]">
+        {file.date}
+      </td>
 
-            {filteredFiles.length === 0 && (
-              <tr>
-                <td
-                  colSpan={8}
-                  className="px-5 py-12 text-center text-sm text-[#737B86]"
-                >
-                  No files found. Try another search.
-                </td>
-              </tr>
-            )}
-          </tbody>
+      <td className="whitespace-nowrap px-5 py-4 text-[#737B86]">
+        {file.outgoing_date || "—"}
+      </td>
+
+      <td className="px-5 py-4">
+        <span
+          className={`inline-flex whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${
+            file.status === "Approved"
+              ? "bg-emerald-50 text-emerald-700"
+              : file.status === "Pending"
+                ? "bg-amber-50 text-amber-700"
+                : "bg-slate-100 text-slate-600"
+          }`}
+        >
+          {file.status || "Pending"}
+        </span>
+      </td>
+
+      <td className="px-5 py-4">
+        <button
+          type="button"
+          onClick={() => onViewFile(file)}
+          className="whitespace-nowrap rounded-lg border border-[#D6E2E8] bg-white px-3 py-2 text-xs font-semibold text-[#0A506E] transition-colors duration-200 hover:border-[#0A506E] hover:bg-[#E7F1F5] active:bg-[#D9EAF0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A506E]/30"
+        >
+          View Details
+        </button>
+      </td>
+    </tr>
+  ))}
+
+  {filteredFiles.length === 0 && (
+    <tr>
+      <td
+        colSpan={8}
+        className="px-5 py-12 text-center text-sm text-[#737B86]"
+      >
+        No files found. Try another search.
+      </td>
+    </tr>
+  )}
+</tbody>
+
+
         </table>
+
       </div>
 
-      <div className="border-t border-[#ECEFF2] px-5 py-4 text-xs text-[#737B86]">
-        Showing {filteredFiles.length} of {files.length} files
-      </div>
+
+
+<div className="flex items-center justify-end gap-2 border-t border-[#ECEFF2] px-5 py-4">
+
+  {/* Previous */}
+  <button
+    type="button"
+    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+    disabled={currentPage === 1}
+    aria-label="Previous page"
+    className="flex h-8 w-8 items-center justify-center text-[#0A506E] hover:bg-[#E7F1F5] rounded-lg disabled:opacity-30"
+  >
+    <svg width="18" height="18" viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round">
+      <path d="m15 18-6-6 6-6" />
+    </svg>
+  </button>
+
+  {/* Page numbers */}
+  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+    <button
+      key={page}
+      type="button"
+      onClick={() => setCurrentPage(page)}
+      aria-current={currentPage === page ? "page" : undefined}
+      className={`h-9 min-w-9 rounded-lg px-3 text-sm transition-colors ${
+        currentPage === page
+          ? "bg-[#0A506E] font-semibold text-white shadow-sm"
+          : "bg-transparent text-[#454B54] hover:bg-[#E7F1F5]"
+      }`}
+    >
+      {page}
+    </button>
+  ))}
+
+  {/* Next */}
+  <button
+    type="button"
+    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+    disabled={currentPage >= totalPages}
+    aria-label="Next page"
+    className="flex h-8 w-8 items-center justify-center text-[#0A506E] hover:bg-[#E7F1F5] rounded-lg disabled:opacity-30"
+  >
+    <svg width="18" height="18" viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round">
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+  </button>
+
+  {/* Rows per page */}
+  <div className="ml-4 flex items-center gap-2">
+    <span className="text-sm text-[#737B86]">Show</span>
+    <select
+      value={pageSize}
+      onChange={(e) => {
+        setPageSize(Number(e.target.value));
+        setCurrentPage(1);
+      }}
+      className="h-9 rounded-lg border border-[#D6E2E8] bg-white px-2 text-sm text-[#454B54] outline-none focus:border-[#0A506E]"
+    >
+      <option value={8}>8</option>
+      <option value={10}>10</option>
+      <option value={25}>25</option>
+      <option value={50}>50</option>
+    </select>
+  </div>
+
+</div>
+
+
+
     </div>
+
   );
+
 }
