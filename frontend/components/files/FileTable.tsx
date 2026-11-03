@@ -7,13 +7,17 @@
 import { useMemo, useState,useEffect } from "react";
 
 import * as XLSX from "xlsx";
+import { formatGregorianAsEthiopian } from "@/utils/ethiopianDate";
 
+function displayEthiopianDate(date?: string | null): string {
+  if (!date) return "—";
 
-
-
-
-
-
+  try {
+    return formatGregorianAsEthiopian(date);
+  } catch {
+    return date;
+  }
+}
 
 
 export type OfficeFile = {
@@ -385,15 +389,15 @@ printVolumeFiles.forEach((file) => {
 
 
 
-  const printDate = new Date().toLocaleDateString("en-GB", {
+  const today = new Date();
 
-    day: "2-digit",
-
-    month: "long",
-
-    year: "numeric",
-
-  });
+const printDate = displayEthiopianDate(
+  [
+    today.getFullYear(),
+    String(today.getMonth() + 1).padStart(2, "0"),
+    String(today.getDate()).padStart(2, "0"),
+  ].join("-")
+);
 
 
 
@@ -468,10 +472,13 @@ printVolumeFiles.forEach((file) => {
       const referenceFrom = references[0] ?? "N/A";
 
       const referenceTo = references[references.length - 1] ?? "N/A";
+const dateFrom = dates[0]
+  ? displayEthiopianDate(dates[0])
+  : "N/A";
 
-      const dateFrom = dates[0] ?? "N/A";
-
-      const dateTo = dates[dates.length - 1] ?? "N/A";
+const dateTo = dates.length
+  ? displayEthiopianDate(dates[dates.length - 1])
+  : "N/A";
 
 
 
@@ -487,9 +494,13 @@ printVolumeFiles.forEach((file) => {
 
               <td>${escapeHtml(file.reference)}</td>
 
-              <td>${escapeHtml(file.outgoing_date || "")}</td>
+             <td>${escapeHtml(
+  file.outgoing_date
+    ? displayEthiopianDate(file.outgoing_date)
+    : ""
+)}</td>
 
-              <td>${escapeHtml(file.date || "")}</td>
+<td>${escapeHtml(displayEthiopianDate(file.date))}</td>
 
               <td>${escapeHtml(file.title)}</td>
 
@@ -754,11 +765,6 @@ printVolumeFiles.forEach((file) => {
 }
 
 
-
-
-
-
-
 function handleExportExcel() {
 
   if (volumeFilter === "All") {
@@ -777,9 +783,11 @@ function handleExportExcel() {
 
     "Ref. No.": file.reference,
 
-    "Outgoing Date": file.outgoing_date || "",
+    "Outgoing Date": file.outgoing_date
+  ? displayEthiopianDate(file.outgoing_date)
+  : "",
 
-    "Date of Registration": file.date || "",
+"Date of Registration": displayEthiopianDate(file.date),
 
     Title: file.title,
 
@@ -1147,13 +1155,13 @@ function handleImportExcel() {
         {file.department}
       </td>
 
-      <td className="whitespace-nowrap px-5 py-4 text-[#737B86]">
-        {file.date}
-      </td>
+   <td className="whitespace-nowrap px-5 py-4 text-[#737B86]">
+  {displayEthiopianDate(file.date)}
+</td>
 
-      <td className="whitespace-nowrap px-5 py-4 text-[#737B86]">
-        {file.outgoing_date || "—"}
-      </td>
+<td className="whitespace-nowrap px-5 py-4 text-[#737B86]">
+  {displayEthiopianDate(file.outgoing_date)}
+</td>
 
       <td className="px-5 py-4">
         <span

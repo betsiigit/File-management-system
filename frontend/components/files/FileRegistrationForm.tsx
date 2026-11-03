@@ -2,6 +2,12 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import EthiopianDatePicker from "@/components/reports/EthiopianDatePicker";
+import {
+  ethiopianToGregorian,
+  formatEthiopianDate,
+  gregorianToEthiopian,
+} from "@/utils/ethiopianDate";
 
 export type RegisteredFileData = {
   fileType: "Incoming" | "Outgoing";
@@ -50,40 +56,60 @@ const [outgoing_date, setOutgoingDate] = useState("");
 
   const labelClass = "text-sm font-semibold text-[#454B54]";
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
 
-    if (
-      !reference.trim() ||
-      !volume.trim() ||
-      !date ||
-      !department ||
-      !title.trim() ||
-      !pages ||
-      Number(pages) < 1 ||
-      !Number.isInteger(Number(pages))
-    ) {
-      setError("Please complete all required fields with valid values.");
-      return;
-    }
-
-    setError("");
-
-    onRegister({
-      fileType,
-      reference: reference.trim(),
-      date,
-      pages: Number(pages),
-      department,
-      assignedOfficer,
-      title: title.trim(),
-      remarks: remarks.trim(),
-     attachments,
-      volume: volume.trim(),
-      outgoing_date: fileType === "Outgoing" ? date : "",
-      status: "Pending",
-    });
+  if (
+    !reference.trim() ||
+    !volume.trim() ||
+    !date ||
+    !department ||
+    !title.trim() ||
+    !pages ||
+    Number(pages) < 1 ||
+    !Number.isInteger(Number(pages))
+  ) {
+    setError("Please complete all required fields with valid values.");
+    return;
   }
+
+  if (fileType === "Outgoing" && !outgoing_date) {
+    setError("Please select an outgoing date.");
+    return;
+  }
+
+  let gregorianDate: string;
+  let gregorianOutgoingDate = "";
+
+  try {
+    // Convert Ethiopian dates to Gregorian before sending to the backend.
+    gregorianDate = ethiopianToGregorian(date);
+
+    if (fileType === "Outgoing") {
+      gregorianOutgoingDate = ethiopianToGregorian(outgoing_date);
+    }
+  } catch {
+    setError("Please select valid Ethiopian dates.");
+    return;
+  }
+
+  setError("");
+
+  onRegister({
+    fileType,
+    reference: reference.trim(),
+    date: gregorianDate,
+    outgoing_date: gregorianOutgoingDate,
+    pages: Number(pages),
+    department,
+    assignedOfficer,
+    title: title.trim(),
+    remarks: remarks.trim(),
+    attachments,
+    volume: volume.trim(),
+    status: "Pending",
+  });
+}
 
   function handleClear() {
     setFileType("Incoming");
@@ -155,28 +181,19 @@ const [outgoing_date, setOutgoingDate] = useState("");
     required
   />
 </div>
+<div>
+  <EthiopianDatePicker
+    label="Registration Date *"
+    value={date}
+    onChange={setDate}
+  />
+</div>
 
-          <div>
-            <label className={labelClass}>
-              Registration Date *
-            </label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className={inputClass}
-              required
-            />
-          </div>
-          <div>
-  <label className={labelClass}>
-    Outgoing Date *
-  </label>
-  <input
-    type="date"
+<div>
+  <EthiopianDatePicker
+    label="Outgoing Date *"
     value={outgoing_date}
-    onChange={(e) => setOutgoingDate(e.target.value)}
-    className={inputClass}
+    onChange={setOutgoingDate}
   />
 </div>
 

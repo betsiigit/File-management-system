@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "kenat-ui": "^1.0.0",
     "lucide-react": "^1.57.0",
     "next": "16.4.0",
     "react": "19.3.0",

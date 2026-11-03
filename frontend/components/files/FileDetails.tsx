@@ -4,6 +4,15 @@
 import { useEffect, useState, type FormEvent } from "react";
 import type { OfficeFile } from "./FileTable";
 
+import EthiopianDatePicker from "@/components/reports/EthiopianDatePicker";
+
+import {
+  ethiopianToGregorian,
+  formatEthiopianNumeric,
+  formatGregorianAsEthiopian,
+  gregorianToEthiopian,
+} from "@/utils/ethiopianDate";
+
 type OfficeFileAttachment = {
   id: number;
   fileName: string;
@@ -37,6 +46,29 @@ const inputClass =
 
 const labelClass = "text-sm font-semibold text-[#454B54]";
 
+// Display Gregorian dates as Ethiopian dates.
+function displayEthiopianDate(date?: string | null): string {
+  if (!date) return "Not recorded";
+
+  try {
+    return formatGregorianAsEthiopian(date);
+  } catch {
+    return date;
+  }
+}
+
+// Convert a Gregorian date into the numeric Ethiopian
+// format expected by the Ethiopian date picker.
+function toEthiopianPickerValue(date?: string | null): string {
+  if (!date) return "";
+
+  try {
+    return formatEthiopianNumeric(gregorianToEthiopian(date));
+  } catch {
+    return "";
+  }
+}
+
 export default function FileDetails({
   file,
   onBack,
@@ -66,21 +98,24 @@ export default function FileDetails({
     status: file.status ?? "Pending",
   }));
 
+  // Load file attachments.
   useEffect(() => {
     setAttachments([]);
     setAttachmentsLoaded(false);
 
     let cancelled = false;
-fetch(
-  `http://localhost:8081/api/office-files/${file.id}/attachments`,
-  {
-    credentials: "include",
-  }
-)
+
+    fetch(
+      `http://localhost:8081/api/office-files/${file.id}/attachments`,
+      {
+        credentials: "include",
+      }
+    )
       .then((response) => {
         if (!response.ok) {
           throw new Error("Failed to load attachments.");
         }
+
         return response.json();
       })
       .then((data: OfficeFileAttachment[]) => {
@@ -91,6 +126,7 @@ fetch(
       })
       .catch((attachmentError) => {
         console.error("Failed to load attachments:", attachmentError);
+
         if (!cancelled) {
           setAttachmentsLoaded(true);
         }
@@ -122,6 +158,7 @@ fetch(
       volume: file.volume ?? "",
       status: file.status ?? "Pending",
     });
+
     setError("");
     setMessage("");
     setIsEditing(false);
@@ -129,6 +166,7 @@ fetch(
 
   async function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
     setError("");
     setMessage("");
 
@@ -152,6 +190,30 @@ fetch(
       return;
     }
 
+    // The form state contains Gregorian dates.
+    // Validate them before sending to the backend.
+    const registrationEthiopian = toEthiopianPickerValue(form.date);
+
+    if (!registrationEthiopian) {
+      setError("Please select a valid Ethiopian registration date.");
+      return;
+    }
+
+    let gregorianOutgoingDate: string | null = null;
+
+    if (form.fileType === "Outgoing") {
+      const outgoingEthiopian = toEthiopianPickerValue(
+        form.outgoing_date
+      );
+
+      if (!outgoingEthiopian) {
+        setError("Please select a valid Ethiopian outgoing date.");
+        return;
+      }
+
+      gregorianOutgoingDate = form.outgoing_date;
+    }
+
     setIsSaving(true);
 
     try {
@@ -167,11 +229,8 @@ fetch(
             referenceNumber: form.reference.trim(),
             title: form.title.trim(),
             fileType: form.fileType,
-            registrationDate: form.date || null,
-            outgoingDate:
-              form.fileType === "Outgoing"
-                ? form.outgoing_date || null
-                : null,
+            registrationDate: form.date,
+            outgoingDate: gregorianOutgoingDate,
             numberOfPages: Number(form.pages),
             department: form.department.trim(),
             assignedOfficer: form.assignedOfficer.trim() || null,
@@ -186,6 +245,7 @@ fetch(
 
       if (!response.ok) {
         const responseText = await response.text();
+
         throw new Error(
           responseText || `Update failed (${response.status}).`
         );
@@ -199,7 +259,9 @@ fetch(
         title: saved.title ?? form.title.trim(),
         fileType: saved.fileType ?? form.fileType,
         date: saved.registrationDate ?? form.date,
-        outgoing_date: saved.outgoingDate ?? form.outgoing_date,
+        outgoing_date:
+          saved.outgoingDate ??
+          (form.fileType === "Outgoing" ? form.outgoing_date : ""),
         pages: saved.numberOfPages ?? Number(form.pages),
         department: saved.department ?? form.department.trim(),
         assignedOfficer:
@@ -210,10 +272,12 @@ fetch(
       } as OfficeFile;
 
       onFileUpdated(updatedFile);
+
       setIsEditing(false);
       setMessage("File updated successfully.");
     } catch (saveError) {
       console.error("Failed to update file:", saveError);
+
       setError(
         saveError instanceof Error
           ? saveError.message
@@ -235,17 +299,18 @@ fetch(
     setMessage("");
     setIsDeleting(true);
 
- try {
-  const response = await fetch(
-    `http://localhost:8081/api/office-files/${file.id}`,
-    {
-      method: "DELETE",
-      credentials: "include",
-    }
-  );
+    try {
+      const response = await fetch(
+        `http://localhost:8081/api/office-files/${file.id}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        }
+      );
 
       if (!response.ok) {
         const responseText = await response.text();
+
         throw new Error(
           responseText || `Delete failed (${response.status}).`
         );
@@ -254,6 +319,7 @@ fetch(
       onFileDeleted(file.id);
     } catch (deleteError) {
       console.error("Failed to delete file:", deleteError);
+
       setError(
         deleteError instanceof Error
           ? deleteError.message
@@ -284,20 +350,39 @@ fetch(
           ]
         : [];
 
+  // Details displayed to the user.
   const detailRows = [
-    { label: "File Type", value: file.fileType || "Not recorded" },
-    { label: "Reference Number", value: file.reference },
-    { label: "File Name / Subject", value: file.title },
-    { label: "Registration Date", value: file.date },
-    { label: "Volume", value: file.volume || "Not recorded" },
+    {
+      label: "File Type",
+      value: file.fileType || "Not recorded",
+    },
+    {
+      label: "Reference Number",
+      value: file.reference,
+    },
+    {
+      label: "File Name / Subject",
+      value: file.title,
+    },
+    {
+      label: "Registration Date",
+      value: displayEthiopianDate(file.date),
+    },
+    {
+      label: "Volume",
+      value: file.volume || "Not recorded",
+    },
     {
       label: "Number of Pages",
       value: file.pages != null ? String(file.pages) : "Not recorded",
     },
-    { label: "Department", value: file.department || "Not recorded" },
+    {
+      label: "Department",
+      value: file.department || "Not recorded",
+    },
     {
       label: "Outgoing Date",
-      value: file.outgoing_date || "Not recorded",
+      value: displayEthiopianDate(file.outgoing_date),
     },
     {
       label: "Assigned Officer",
@@ -378,9 +463,18 @@ fetch(
 
       <div className="overflow-hidden rounded-xl border border-[#E2E6ED] bg-white shadow-sm">
         <div className="bg-[#0A506E] p-6 text-white">
-          <p className="text-sm text-white/75">Office File Reference</p>
-          <h2 className="mt-1 text-2xl font-bold">{file.reference}</h2>
-          <p className="mt-3 text-sm text-white/80">Office File Details</p>
+          <p className="text-sm text-white/75">
+            Office File Reference
+          </p>
+
+          <h2 className="mt-1 text-2xl font-bold">
+            {file.reference}
+          </h2>
+
+          <p className="mt-3 text-sm text-white/80">
+            Office File Details
+          </p>
+
           <div className="mt-3">
             <span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-sm">
               Status: {file.status}
@@ -389,14 +483,17 @@ fetch(
         </div>
 
         {isEditing ? (
-          <form onSubmit={handleSave} className="space-y-5 p-6 print:hidden">
+          <form
+            onSubmit={handleSave}
+            className="space-y-5 p-6 print:hidden"
+          >
             <h3 className="text-lg font-semibold text-[#292D32]">
               Edit Office File
             </h3>
 
             <p className="text-sm text-[#7B8492]">
-              Update the file information below. Existing attachments will be
-              kept.
+              Update the file information below. Existing attachments will
+              be kept.
             </p>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -441,32 +538,46 @@ fetch(
                 />
               </label>
 
-              <label className={labelClass}>
-                Registration Date *
-                <input
-                  required
-                  type="date"
-                  className={inputClass}
-                  value={form.date}
-                  onChange={(event) =>
-                    updateField("date", event.target.value)
-                  }
+              <div>
+                <EthiopianDatePicker
+                  label="Registration Date *"
+                  value={toEthiopianPickerValue(form.date)}
+                  onChange={(value) => {
+                    try {
+                      updateField(
+                        "date",
+                        ethiopianToGregorian(value)
+                      );
+                      setError("");
+                    } catch {
+                      setError(
+                        "Please select a valid Ethiopian registration date."
+                      );
+                    }
+                  }}
                 />
-              </label>
+              </div>
 
               {form.fileType === "Outgoing" && (
-                <label className={labelClass}>
-                  Outgoing Date *
-                  <input
-                    required
-                    type="date"
-                    className={inputClass}
-                    value={form.outgoing_date}
-                    onChange={(event) =>
-                      updateField("outgoing_date", event.target.value)
-                    }
+                <div>
+                  <EthiopianDatePicker
+                    label="Outgoing Date *"
+                    value={toEthiopianPickerValue(form.outgoing_date)}
+                    onChange={(value) => {
+                      try {
+                        updateField(
+                          "outgoing_date",
+                          ethiopianToGregorian(value)
+                        );
+                        setError("");
+                      } catch {
+                        setError(
+                          "Please select a valid Ethiopian outgoing date."
+                        );
+                      }
+                    }}
                   />
-                </label>
+                </div>
               )}
 
               <label className={labelClass}>
@@ -580,7 +691,10 @@ fetch(
                       : ""
                   }
                 >
-                  <p className="text-sm text-[#7B8492]">{item.label}</p>
+                  <p className="text-sm text-[#7B8492]">
+                    {item.label}
+                  </p>
+
                   <p className="mt-1 whitespace-pre-wrap break-words text-sm font-medium text-[#292D32]">
                     {item.value}
                   </p>
@@ -588,7 +702,9 @@ fetch(
               ))}
 
               <div className="sm:col-span-2">
-                <p className="text-sm text-[#7B8492]">Attachments</p>
+                <p className="text-sm text-[#7B8492]">
+                  Attachments
+                </p>
 
                 {!attachmentsLoaded ? (
                   <p className="mt-2 text-sm text-[#7B8492]">
