@@ -1040,131 +1040,122 @@ export default function Home() {
     );
   }
 
-  async function registerFile(data: RegisteredFileData) {
-    const duplicateReference = files.some(
-      (file) =>
-        file.reference.toLowerCase() === data.reference.toLowerCase()
+async function registerFile(data: RegisteredFileData) {
+  try {
+    setNotice("Registering file...");
+
+    const response = await fetch(
+      "http://localhost:8081/api/office-files",
+      {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: data.title,
+          fileType: data.fileType,
+          registrationDate: data.date,
+          outgoingDate: data.outgoing_date || null,
+          numberOfPages: data.pages,
+          department: data.department,
+          assignedOfficer: data.assignedOfficer || null,
+          remarks: data.remarks || null,
+          volume: data.volume?.trim() || null,
+          status: data.status || "Pending",
+          documentPath: null,
+        }),
+      }
     );
 
-    if (duplicateReference) {
-      setNotice(`Reference number "${data.reference}" already exists.`);
-      return;
+    if (!response.ok) {
+      const message = await response.text();
+      throw new Error(message || `Request failed (${response.status})`);
     }
 
-    try {
-      setNotice("Registering file...");
+    const savedFile = await response.json();
 
-      const response = await fetch(
-        "http://localhost:8081/api/office-files",
-        {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            referenceNumber: data.reference,
-            title: data.title,
-            fileType: data.fileType,
-            registrationDate: data.date,
-            outgoingDate: data.outgoing_date || null,
-            numberOfPages: data.pages,
-            department: data.department,
-            assignedOfficer: data.assignedOfficer || null,
-            remarks: data.remarks || null,
-            volume: data.volume?.trim() || null,
-            status: data.status || "Pending",
-            documentPath: null,
-          }),
-        }
-      );
+    let attachmentUploadFailed = false;
 
-      if (!response.ok) {
-        const message = await response.text();
-        throw new Error(message || `Request failed (${response.status})`);
-      }
+    // Upload attachments without changing the existing upload flow
+    if (data.attachments.length > 0) {
+      const uploadForm = new FormData();
 
-      const savedFile = await response.json();
+      data.attachments.forEach((file) => {
+        uploadForm.append("files", file);
+      });
 
-      let attachmentUploadFailed = false;
-
-      if (data.attachments.length > 0) {
-        const uploadForm = new FormData();
-
-        data.attachments.forEach((file) => {
-          uploadForm.append("files", file);
-        });
-
-        try {
-          const uploadResponse = await fetch(
-            `http://localhost:8081/api/attachments/office-file/${savedFile.id}`,
-            {
-              method: "POST",
-              credentials: "include",
-              body: uploadForm,
-            }
-          );
-
-          if (!uploadResponse.ok) {
-            throw new Error("Attachment upload failed.");
+      try {
+        const uploadResponse = await fetch(
+          `http://localhost:8081/api/attachments/office-file/${savedFile.id}`,
+          {
+            method: "POST",
+            credentials: "include",
+            body: uploadForm,
           }
+        );
 
-          await uploadResponse.json();
-        } catch (error) {
-          console.error("Failed to upload attachments:", error);
-          attachmentUploadFailed = true;
+        if (!uploadResponse.ok) {
+          throw new Error("Attachment upload failed.");
         }
+
+        await uploadResponse.json();
+      } catch (error) {
+        console.error("Failed to upload attachments:", error);
+        attachmentUploadFailed = true;
       }
-
-      const newFile: OfficeFile = {
-        id: savedFile.id,
-        reference: savedFile.referenceNumber,
-        volume: data.volume,
-        title: savedFile.title,
-        department: savedFile.department ?? "",
-        date: savedFile.registrationDate ?? data.date,
-        outgoing_date: data.outgoing_date,
-        status: "Pending",
-        fileType: savedFile.fileType,
-        pages: savedFile.numberOfPages,
-        assignedOfficer: savedFile.assignedOfficer ?? "",
-        remarks: savedFile.remarks ?? "",
-        attachmentNames: data.attachments.map((file) => file.name),
-      };
-
-      setFiles((currentFiles) => [newFile, ...currentFiles]);
-      setShowForm(false);
-      setActiveMenu("Dashboard");
-
-      setNotice(
-        attachmentUploadFailed
-          ? `File "${newFile.title}" registered, but its attachments could not all be uploaded.`
-          : `File "${newFile.title}" registered successfully.`
-      );
-    } catch (error) {
-      console.error("Failed to register office file:", error);
-      setNotice(
-        error instanceof Error
-          ? `Could not register file: ${error.message}`
-          : "Could not register file. Please try again."
-      );
     }
-  }
 
-  const roleLabel =
-    profile.role === "SYSTEM_ADMIN"
-      ? "System Administrator"
-      : profile.role === "BRANCH_ADMIN"
-        ? "Branch Administrator"
-        : profile.role === "ADMIN"
-          ? "Administrator"
-          : profile.role === "REGISTRAR"
-            ? "Registrar"
-            : profile.role === "OFFICER"
-              ? "Officer"
-              : profile.role === "VIEWER"
-                ? "Viewer"
-                : profile.role || "Role not assigned";
+    const newFile: OfficeFile = {
+      id: savedFile.id,
+      reference: savedFile.referenceNumber,
+      volume: savedFile.volume ?? data.volume,
+      title: savedFile.title,
+      department: savedFile.department ?? data.department,
+      date: savedFile.registrationDate ?? data.date,
+      outgoing_date: savedFile.outgoingDate ?? data.outgoing_date,
+      status: savedFile.status ?? "Pending",
+      fileType: savedFile.fileType,
+      pages: savedFile.numberOfPages,
+      assignedOfficer: savedFile.assignedOfficer ?? "",
+      remarks: savedFile.remarks ?? "",
+      attachmentNames: data.attachments.map((file) => file.name),
+    };
+
+    setFiles((currentFiles) => [newFile, ...currentFiles]);
+
+    setShowForm(false);
+    setActiveMenu("Dashboard");
+
+    setNotice(
+      attachmentUploadFailed
+        ? `File "${newFile.title}" registered successfully with reference ${newFile.reference}, but its attachments could not all be uploaded.`
+        : `File "${newFile.title}" registered successfully. Reference: ${newFile.reference}`
+    );
+  } catch (error) {
+    console.error("Failed to register office file:", error);
+
+    setNotice(
+      error instanceof Error
+        ? `Could not register file: ${error.message}`
+        : "Could not register file. Please try again."
+    );
+  }
+}
+ const roleLabel =
+  profile.role === "SYSTEM_ADMIN"
+    ? "System Administrator"
+    : profile.role === "BRANCH_ADMIN"
+      ? "Branch Administrator"
+      : profile.role === "ADMIN"
+        ? "Administrator"
+        : profile.role === "REGISTRAR"
+          ? "Registrar"
+          : profile.role === "OFFICER"
+            ? "Officer"
+            : profile.role === "VIEWER"
+              ? "Viewer"
+              : profile.role || "Role not assigned";
 
   return (
     <main
