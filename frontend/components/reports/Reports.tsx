@@ -1435,22 +1435,31 @@ function resetReport() {
           />
         </section>
       </div>
-
       {/* =========================================
           OFFICIAL PRINT REPORT
           Hidden on screen; visible when printing
       ========================================= */}
       <div className="report-print-area">
+        {/* Official Header */}
         <header className="print-header">
-          <div className="print-logo-placeholder">ECC</div>
+          <img
+  src="/logo.png"
+  alt="Ethiopian Customs Commission Logo"
+  className="report-logo"
+/>
 
           <div className="print-heading">
             <h1>ETHIOPIAN CUSTOMS COMMISSION</h1>
-            <h2>OFFICE FILE MANAGEMENT SYSTEM</h2>
-          <p>
+           <h2>
+  {selectedReportBranch === "All"
+    ? "All Branches"
+    : selectedReportBranch}
+</h2>
+
+<p>
   {reportType === "Complete"
-    ? "OFFICIAL MANAGEMENT REPORT"
-    : `OFFICIAL ${reportType.toUpperCase()} REPORT`}
+    ? "COMPLETE MANAGEMENT REPORT"
+    : `${reportType.toUpperCase()} REPORT`}
 </p>
           </div>
 
@@ -1462,23 +1471,23 @@ function resetReport() {
 
         <div className="print-divider" />
 
-        {/* Report information */}
+        {/* Report Information */}
         <section className="print-information">
           <div>
             <span>Report Title</span>
             <strong>
-  {reportType === "Complete"
-    ? "Office Activity and Analytics Report"
-    : reportType === "Files"
-      ? "File Management Report"
-      : reportType === "Employees"
-        ? "Employee Statistics Report"
-        : reportType === "Jobs"
-          ? "Job Activity Report"
-          : reportType === "Transfers"
-            ? "Transfer Activity Report"
-            : "Letter Activity Report"}
-</strong>
+              {reportType === "Complete"
+                ? "Office Activity and Analytics Report"
+                : reportType === "Files"
+                  ? "File Management Report"
+                  : reportType === "Employees"
+                    ? "Employee Statistics Report"
+                    : reportType === "Jobs"
+                      ? "Job Activity Report"
+                      : reportType === "Transfers"
+                        ? "Transfer Activity Report"
+                        : "Letter Activity Report"}
+            </strong>
           </div>
 
           <div>
@@ -1493,14 +1502,24 @@ function resetReport() {
           <div>
             <span>From Date</span>
             <strong>
-              {appliedFrom ? formatReportDate(appliedFrom) : "All dates"}
+              {appliedFromEth
+                ? appliedFromEth.replace(
+                    /^(\d{4})\/(\d{2})\/(\d{2})$/,
+                    "$1/$2/$3"
+                  )
+                : "All dates"}
             </strong>
           </div>
 
           <div>
             <span>To Date</span>
             <strong>
-              {appliedTo ? formatReportDate(appliedTo) : "All dates"}
+              {appliedToEth
+                ? appliedToEth.replace(
+                    /^(\d{4})\/(\d{2})\/(\d{2})$/,
+                    "$1/$2/$3"
+                  )
+                : "All dates"}
             </strong>
           </div>
 
@@ -1518,302 +1537,322 @@ function resetReport() {
         </section>
 
         {/* 1. User Activity */}
-        <section className="print-section">
-          <h2>1. USER ACTIVITY REPORT</h2>
+        {reportType === "Complete" && (
+          <section className="print-section">
+            <h2>1. USER ACTIVITY REPORT</h2>
 
-          <table className="print-table">
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>User</th>
-                <th>Files</th>
-                <th>Jobs</th>
-                <th>Letters</th>
-                <th>Transfers</th>
-                <th>Employees</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td colSpan={8}>
-                  User activity data is not currently available. An audit
-                  or activity-log data source is required.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
-
-        {/* 2. Employee Statistics */}
-        <section className="print-section">
-          <h2>2. EMPLOYEE STATISTICS</h2>
-
-          <table className="print-table">
-            <thead>
-              <tr>
-                <th>Employee Category</th>
-                <th>Male</th>
-                <th>Female</th>
-                <th>Other</th>
-                <th>Not Recorded</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              <tr>
-                <td>Active Employees</td>
-                <td>{genderStats.activeMale}</td>
-                <td>{genderStats.activeFemale}</td>
-                <td>{genderStats.activeOther}</td>
-                <td>
-                  {report.active.length -
-                    genderStats.activeMale -
-                    genderStats.activeFemale -
-                    genderStats.activeOther}
-                </td>
-                <td>{report.active.length}</td>
-              </tr>
-
-              <tr>
-                <td>Inactive Employees</td>
-                <td>{genderStats.inactiveMale}</td>
-                <td>{genderStats.inactiveFemale}</td>
-                <td>{genderStats.inactiveOther}</td>
-                <td>
-                  {report.inactive.length -
-                    genderStats.inactiveMale -
-                    genderStats.inactiveFemale -
-                    genderStats.inactiveOther}
-                </td>
-                <td>{report.inactive.length}</td>
-              </tr>
-
-              <tr className="print-total-row">
-                <td>Total Employees</td>
-                <td>
-                  {genderStats.activeMale + genderStats.inactiveMale}
-                </td>
-                <td>
-                  {genderStats.activeFemale + genderStats.inactiveFemale}
-                </td>
-                <td>
-                  {genderStats.activeOther + genderStats.inactiveOther}
-                </td>
-                <td>{genderStats.notRecorded}</td>
-                <td>{employees.length}</td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
-
-        {/* 3. Inactive Employees */}
-        <section className="print-section">
-          <h2>3. INACTIVE EMPLOYEES BY REASON</h2>
-
-          <table className="print-table">
-            <thead>
-              <tr>
-                <th>Reason</th>
-                <th>Number of Employees</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              <tr>
-                <td>Retired</td>
-                <td>{inactiveReasonStats.retired}</td>
-              </tr>
-              <tr>
-                <td>Resigned</td>
-                <td>{inactiveReasonStats.resigned}</td>
-              </tr>
-              <tr>
-                <td>Deceased</td>
-                <td>{inactiveReasonStats.deceased}</td>
-              </tr>
-              <tr>
-                <td>Transferred</td>
-                <td>{inactiveReasonStats.transferred}</td>
-              </tr>
-              <tr>
-                <td>Other / Not Recorded</td>
-                <td>{otherInactiveReasons}</td>
-              </tr>
-              <tr className="print-total-row">
-                <td>Total Inactive Employees</td>
-                <td>{report.inactive.length}</td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
-
-        {/* 4. File Activity */}
-        <section className="print-section">
-          <h2>4. FILE ACTIVITY SUMMARY</h2>
-
-          <table className="print-table">
-            <thead>
-              <tr>
-                <th>Total Files</th>
-                <th>Incoming</th>
-                <th>Outgoing</th>
-                <th>Pending</th>
-                <th>Approved</th>
-                <th>Archived</th>
-                <th>Total Pages</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              <tr>
-                <td>{summary.totalFiles}</td>
-                <td>{summary.incomingFiles}</td>
-                <td>{summary.outgoingFiles}</td>
-                <td>{summary.pendingFiles}</td>
-                <td>{summary.approvedFiles}</td>
-                <td>{summary.archivedFiles}</td>
-                <td>{report.totalPages}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          {summaryError && (
-            <p className="print-warning">
-              File summary could not be retrieved from the backend. Some
-              file statistics may be incomplete.
-            </p>
-          )}
-        </section>
-
-        {/* 5. File Register */}
-        <section className="print-section">
-          <h2>5. FILE REGISTER DETAILS</h2>
-
-          <table className="print-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Reference</th>
-                <th>Title</th>
-                <th>Department</th>
-                <th>Assigned Officer</th>
-                <th>Pages</th>
-                <th>Date</th>
-                <th>Type</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {report.files.length === 0 ? (
+            <table className="print-table">
+              <thead>
                 <tr>
-                  <td colSpan={9}>
-                    No files match the selected branch and date range.
+                  <th>Rank</th>
+                  <th>User</th>
+                  <th>Files</th>
+                  <th>Jobs</th>
+                  <th>Letters</th>
+                  <th>Transfers</th>
+                  <th>Employees</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr>
+                  <td colSpan={8}>
+                    User activity data is not currently available. An audit
+                    or activity-log data source is required.
                   </td>
                 </tr>
-              ) : (
-                report.files.map((file, index) => (
-                  <tr key={file.id}>
-                    <td>{index + 1}</td>
-                    <td>{file.reference || "—"}</td>
-                    <td>{file.title || "—"}</td>
-                    <td>{file.department || "—"}</td>
-                    <td>{file.assignedOfficer || "—"}</td>
-                    <td>{file.pages ?? 0}</td>
-                    <td>{formatReportDate(file.date)}</td>
-                    <td>{file.fileType || "—"}</td>
-                    <td>{file.status || "—"}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </section>
+        )}
 
-          <p className="print-note">
-            Total records listed: {report.files.length} | Total recorded
-            pages: {report.totalPages}
-          </p>
-        </section>
+        {/* 2. Employee Statistics */}
+        {isReportVisible("Employees") && (
+          <section className="print-section">
+            <h2>2. EMPLOYEE STATISTICS</h2>
+
+            <table className="print-table">
+              <thead>
+                <tr>
+                  <th>Employee Category</th>
+                  <th>Male</th>
+                  <th>Female</th>
+                  <th>Other</th>
+                  <th>Not Recorded</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr>
+                  <td>Active Employees</td>
+                  <td>{genderStats.activeMale}</td>
+                  <td>{genderStats.activeFemale}</td>
+                  <td>{genderStats.activeOther}</td>
+                  <td>
+                    {report.active.length -
+                      genderStats.activeMale -
+                      genderStats.activeFemale -
+                      genderStats.activeOther}
+                  </td>
+                  <td>{report.active.length}</td>
+                </tr>
+
+                <tr>
+                  <td>Inactive Employees</td>
+                  <td>{genderStats.inactiveMale}</td>
+                  <td>{genderStats.inactiveFemale}</td>
+                  <td>{genderStats.inactiveOther}</td>
+                  <td>
+                    {report.inactive.length -
+                      genderStats.inactiveMale -
+                      genderStats.inactiveFemale -
+                      genderStats.inactiveOther}
+                  </td>
+                  <td>{report.inactive.length}</td>
+                </tr>
+
+                <tr className="print-total-row">
+                  <td>Total Employees</td>
+                  <td>
+                    {genderStats.activeMale + genderStats.inactiveMale}
+                  </td>
+                  <td>
+                    {genderStats.activeFemale + genderStats.inactiveFemale}
+                  </td>
+                  <td>
+                    {genderStats.activeOther + genderStats.inactiveOther}
+                  </td>
+                  <td>{genderStats.notRecorded}</td>
+                  <td>{employees.length}</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        )}
+
+        {/* 3. Inactive Employees */}
+        {isReportVisible("Employees") && (
+          <section className="print-section">
+            <h2>3. INACTIVE EMPLOYEES BY REASON</h2>
+
+            <table className="print-table">
+              <thead>
+                <tr>
+                  <th>Reason</th>
+                  <th>Number of Employees</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr>
+                  <td>Retired</td>
+                  <td>{inactiveReasonStats.retired}</td>
+                </tr>
+                <tr>
+                  <td>Resigned</td>
+                  <td>{inactiveReasonStats.resigned}</td>
+                </tr>
+                <tr>
+                  <td>Deceased</td>
+                  <td>{inactiveReasonStats.deceased}</td>
+                </tr>
+                <tr>
+                  <td>Transferred</td>
+                  <td>{inactiveReasonStats.transferred}</td>
+                </tr>
+                <tr>
+                  <td>Other / Not Recorded</td>
+                  <td>{otherInactiveReasons}</td>
+                </tr>
+                <tr className="print-total-row">
+                  <td>Total Inactive Employees</td>
+                  <td>{report.inactive.length}</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        )}
+
+        {/* 4. File Activity */}
+        {isReportVisible("Files") && (
+          <section className="print-section">
+            <h2>4. FILE ACTIVITY SUMMARY</h2>
+
+            <table className="print-table">
+              <thead>
+                <tr>
+                  <th>Total Files</th>
+                  <th>Incoming</th>
+                  <th>Outgoing</th>
+                  <th>Pending</th>
+                  <th>Approved</th>
+                  <th>Archived</th>
+                  <th>Total Pages</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr>
+                  <td>{summary.totalFiles}</td>
+                  <td>{summary.incomingFiles}</td>
+                  <td>{summary.outgoingFiles}</td>
+                  <td>{summary.pendingFiles}</td>
+                  <td>{summary.approvedFiles}</td>
+                  <td>{summary.archivedFiles}</td>
+                  <td>{report.totalPages}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            {summaryError && (
+              <p className="print-warning">
+                File summary could not be retrieved from the backend. Some
+                file statistics may be incomplete.
+              </p>
+            )}
+          </section>
+        )}
+
+        {/* 5. File Register */}
+        {isReportVisible("Files") && (
+          <section className="print-section">
+            <h2>5. FILE REGISTER DETAILS</h2>
+
+            <table className="print-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Reference</th>
+                  <th>Title</th>
+                  <th>Department</th>
+                  <th>Assigned Officer</th>
+                  <th>Pages</th>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {report.files.length === 0 ? (
+                  <tr>
+                    <td colSpan={9}>
+                      No files match the selected branch and date range.
+                    </td>
+                  </tr>
+                ) : (
+                  report.files.map((file, index) => (
+                    <tr key={file.id}>
+                      <td>{index + 1}</td>
+                      <td>{file.reference || "—"}</td>
+                      <td>{file.title || "—"}</td>
+                      <td>{file.department || "—"}</td>
+                      <td>{file.assignedOfficer || "—"}</td>
+                      <td>{file.pages ?? 0}</td>
+                      <td>{formatReportDate(file.date)}</td>
+                      <td>{file.fileType || "—"}</td>
+                      <td>{file.status || "—"}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+
+            <p className="print-note">
+              Total records listed: {report.files.length} | Total recorded
+              pages: {report.totalPages}
+            </p>
+          </section>
+        )}
 
         {/* 6. Job Activity */}
-        <section className="print-section">
-          <h2>6. JOB ACTIVITY</h2>
+        {isReportVisible("Jobs") && (
+          <section className="print-section">
+            <h2>6. JOB ACTIVITY</h2>
 
-          <table className="print-table">
-            <thead>
-              <tr>
-                <th>Total Jobs</th>
-                <th>Total Quantity</th>
-                <th>Average per Job</th>
-                <th>Unique Dates</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td colSpan={4}>
-                  Unavailable — job records are not connected to the
-                  reporting source yet.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
+            <table className="print-table">
+              <thead>
+                <tr>
+                  <th>Total Jobs</th>
+                  <th>Total Quantity</th>
+                  <th>Average per Job</th>
+                  <th>Unique Dates</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr>
+                  <td colSpan={4}>
+                    Unavailable — job records are not connected to the
+                    reporting source yet.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        )}
 
         {/* 7. Transfer Activity */}
-        <section className="print-section">
-          <h2>7. TRANSFER ACTIVITY</h2>
+        {isReportVisible("Transfers") && (
+          <section className="print-section">
+            <h2>7. TRANSFER ACTIVITY</h2>
 
-          <table className="print-table">
-            <thead>
-              <tr>
-                <th>Total Transfers</th>
-                <th>Received</th>
-                <th>Sent</th>
-                <th>Pages Transferred</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td colSpan={4}>
-                  Unavailable — transfer records are not connected to the
-                  reporting source yet.
-                </td>
-              </tr>
-            </tbody>
-          </table>
+            <table className="print-table">
+              <thead>
+                <tr>
+                  <th>Total Transfers</th>
+                  <th>Received</th>
+                  <th>Sent</th>
+                  <th>Pages Transferred</th>
+                </tr>
+              </thead>
 
-          <p className="print-note">
-            Detailed transfer statistics and records are not currently
-            available.
-          </p>
-        </section>
+              <tbody>
+                <tr>
+                  <td colSpan={4}>
+                    Unavailable — transfer records are not connected to the
+                    reporting source yet.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <p className="print-note">
+              Detailed transfer statistics and records are not currently
+              available.
+            </p>
+          </section>
+        )}
 
         {/* 8. Letter Activity */}
-        <section className="print-section">
-          <h2>8. LETTER ACTIVITY</h2>
+        {isReportVisible("Letters") && (
+          <section className="print-section">
+            <h2>8. LETTER ACTIVITY</h2>
 
-          <table className="print-table">
-            <thead>
-              <tr>
-                <th>Total Letters</th>
-                <th>Incoming</th>
-                <th>Outgoing</th>
-                <th>Email</th>
-                <th>Hand Delivered</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td colSpan={5}>
-                  Unavailable — letter records are not connected to the
-                  reporting source yet.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
+            <table className="print-table">
+              <thead>
+                <tr>
+                  <th>Total Letters</th>
+                  <th>Incoming</th>
+                  <th>Outgoing</th>
+                  <th>Email</th>
+                  <th>Hand Delivered</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr>
+                  <td colSpan={5}>
+                    Unavailable — letter records are not connected to the
+                    reporting source yet.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        )}
 
         {/* Signatures */}
         <section className="print-signatures">

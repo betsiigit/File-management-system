@@ -518,250 +518,202 @@ const dateTo = dates.length
 
 
 
-      return `
+     return (
+  `
+    <section class="register">
 
-        <section class="register">
+     <header class="print-header">
+  <img
+    src="${window.location.origin}/logo.png"
+    alt="Ethiopian Customs Commission Logo"
+    class="report-logo"
+  />
 
-          <h2>OFFICE FILE REGISTER</h2>
+  <div class="print-header-text">
+    <h1>ETHIOPIAN CUSTOMS COMMISSION</h1>
+    <h2>OFFICE FILE REGISTER</h2>
+  </div>
+</header>
 
+      <table>
+        <thead>
+          <tr>
+            <th colspan="7" class="register-title-row">
+              Print Date: ${escapeHtml(printDate)}
+              &nbsp; | &nbsp;
+              Volume: ${escapeHtml(volumeFilter)}
+              &nbsp; | &nbsp;
+              ${escapeHtml(group)}
+              &nbsp; | &nbsp;
+              Ref. No.: ${escapeHtml(referenceFrom)} – ${escapeHtml(referenceTo)}
+              &nbsp; | &nbsp;
+              Registration Date: ${escapeHtml(dateFrom)} – ${escapeHtml(dateTo)}
+            </th>
+          </tr>
 
+          <tr>
+            <th>No.</th>
+            <th>Ref. No.</th>
+            <th>Outgoing Date</th>
+            <th>Date of Registration</th>
+            <th>Title</th>
+            <th>Description</th>
+            <th>Bulk</th>
+          </tr>
+        </thead>
 
-          <table>
+        <tbody>${rows}</tbody>
+      </table>
 
-            <thead>
+    </section>
+  `
+    );
+  })
+  .join("");
 
-              <tr>
+const printWindow = window.open("", "_blank", "width=1200,height=800");
 
-                <th colspan="7" class="register-title-row">
+if (!printWindow) {
+  alert("Please allow pop-ups for this website, then try again.");
+  return;
+}
 
-                  Print Date: ${escapeHtml(printDate)}
+printWindow.document.open();
 
-                  &nbsp; | &nbsp;
+printWindow.document.write(`
+  <!DOCTYPE html>
+  <html>
+    <head>
+      <meta charset="UTF-8" />
+      <title>${escapeHtml(volumeFilter)} Register</title>
 
-                  Volume: ${escapeHtml(volumeFilter)}
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          padding: 20px;
+          color: #111;
+        }
 
-                  &nbsp; | &nbsp;
+      .print-header {
+  display: grid !important;
+  grid-template-columns: 85px 1fr 85px !important;
+  align-items: center !important;
+  width: 100% !important;
+  min-height: 90px;
+  margin-bottom: 20px;
+}
 
-                   ${escapeHtml(group)}
+.report-logo {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  justify-self: start !important;
+  align-self: center !important;
+  position: static !important;
+  display: block !important;
+  width: 85px !important;
+  height: 85px !important;
+  object-fit: contain;
+  margin: 0 !important;
+}
 
-                  &nbsp; | &nbsp;
+.print-header-text {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  width: 100% !important;
+  text-align: center !important;
+}
 
-                  Ref. No.: ${escapeHtml(referenceFrom)} – ${escapeHtml(referenceTo)}
+.print-header-text h1 {
+  font-size: 15px !important;
+  font-weight: bold;
+  margin: 3px 0;
+}
 
-                  &nbsp; | &nbsp;
+.print-header-text h2 {
+  font-size: 12px !important;
+  font-weight: bold;
+  margin: 4px 0;
+}
 
-                  Registration Date: ${escapeHtml(dateFrom)} – ${escapeHtml(dateTo)}
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 24px;
+        }
 
-                </th>
+        th, td {
+          border: 1px solid #333;
+          padding: 8px;
+          text-align: left;
+          font-size: 11px;
+        }
 
-              </tr>
+        th {
+          background: #eee;
+        }
 
-              <tr>
+        .register-title-row {
+          text-align: left;
+          white-space: nowrap;
+          font-size: 10px;
+          font-weight: normal;
+          background: #fff;
+        }
 
-                <th>No.</th>
+        .register {
+          margin-bottom: 32px;
+        }
 
-                <th>Ref. No.</th>
-
-                <th>Outgoing Date</th>
-
-                <th>Date of Registration</th>
-
-                <th>Title</th>
-
-                <th>Description</th>
-
-                <th>Bulk</th>
-
-              </tr>
-
-            </thead>
-
-            <tbody>${rows}</tbody>
-
-          </table>
-
-        </section>
-
-      `;
-
-    })
-
-    .join("");
-
-
-
-  const printWindow = window.open("", "_blank", "width=1200,height=800");
-
-
-
-  if (!printWindow) {
-
-    alert("Please allow pop-ups for this website, then try again.");
-
-    return;
-
-  }
-
-
-
-  printWindow.document.open();
-
-  printWindow.document.write(`
-
-    <!DOCTYPE html>
-
-    <html>
-
-      <head>
-
-        <meta charset="UTF-8" />
-
-        <title>${escapeHtml(volumeFilter)} Register</title>
-
-        <style>
-
+        @media print {
           body {
-
-            font-family: Arial, sans-serif;
-
-            padding: 20px;
-
-            color: #111;
-
+            padding: 0;
           }
-
-
-
-          h2 {
-
-            text-align: center;
-
-            margin-bottom: 14px;
-
-          }
-
-
-
-          table {
-
-            width: 100%;
-
-            border-collapse: collapse;
-
-            margin-bottom: 24px;
-
-          }
-
-
-
-          th, td {
-
-            border: 1px solid #333;
-
-            padding: 8px;
-
-            text-align: left;
-
-            font-size: 11px;
-
-          }
-
-
-
-          th {
-
-            background: #eee;
-
-          }
-
-
-
-          .register-title-row {
-
-            text-align: left;
-
-            white-space: nowrap;
-
-            font-size: 10px;
-
-            font-weight: normal;
-
-            background: #fff;
-
-          }
-
-
 
           .register {
-
-            margin-bottom: 32px;
-
+            break-after: page;
           }
 
-
-
-          @media print {
-
-            body {
-
-              padding: 0;
-
-            }
-
-
-
-            .register {
-
-              break-after: page;
-
-            }
-
-
-
-            .register:last-child {
-
-              break-after: auto;
-
-            }
-
-
-
-            .register-title-row {
-
-              background: #fff;
-
-            }
-
+          .register:last-child {
+            break-after: auto;
           }
 
-        </style>
+          .register-title-row {
+            background: #fff;
+          }
 
-      </head>
+          .report-logo {
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+          }
+        }
+      </style>
+    </head>
 
-      <body>
+    <body>
+      ${printSections}
+    </body>
+  </html>
+`);
 
-        ${printSections}
+printWindow.document.close();
 
-      </body>
+printWindow.onload = async () => {
+  const images = Array.from(printWindow.document.images);
 
-    </html>
+  await Promise.all(
+    images.map((img) => {
+      if (img.complete) return Promise.resolve();
 
-  `);
+      return new Promise<void>((resolve) => {
+        img.onload = () => resolve();
+        img.onerror = () => resolve();
+      });
+    })
+  );
 
-
-
-  printWindow.document.close();
-
-
-
-  printWindow.onload = () => {
-
-    printWindow.focus();
-
-    printWindow.print();
-
-  };
-
+  printWindow.focus();
+  printWindow.print();
+};
 }
 
 

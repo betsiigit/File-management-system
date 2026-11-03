@@ -114,3 +114,36 @@ textarea:focus-visible {
   width: 0 !important;
   height: 0 !important;
 }
+.print-header {
+  display: grid !important;
+  grid-template-columns: 85px 1fr 85px !important;
+  align-items: center !important;
+  width: 100% !important;
+  min-height: 90px;
+  margin-bottom: 20px;
+}
+
+.report-logo {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  justify-self: start !important;
+  align-self: center !important;
+  position: static !important;
+  display: block !important;
+  width: 85px !important;
+  height: 85px !important;
+  object-fit: contain;
+  margin: 0 !important;
+}
+
+.print-header-text {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  width: 100% !important;
+  text-align: center !important;
+}
+
+.print-header-text h1,
+.print-header-text h2 {
+  text-align: center !important;
+}
