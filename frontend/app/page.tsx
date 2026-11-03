@@ -1570,12 +1570,11 @@ export default function Home() {
 
             {activeMenu === "Various Jobs" && <VariousJobs />}
 
-            {activeMenu === "User Management" &&
-              (profile.role === "SYSTEM_ADMIN" ||
-                profile.role === "BRANCH_ADMIN") && (
-                <UserManagement userRole={profile.role} />
-              )}
-
+          {activeMenu === "User Management" &&
+  (profile.role === "SYSTEM_ADMIN" ||
+    profile.role === "BRANCH_ADMIN") && (
+    <UserManagement userRole={profile.role} />
+  )}
             {activeMenu === "Branch Management" &&
               profile.role === "SYSTEM_ADMIN" && <BranchManagement />}
 

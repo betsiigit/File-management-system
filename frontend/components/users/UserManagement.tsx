@@ -11,7 +11,6 @@ type Role =
   | "VIEWER"
   | "ADMIN";
 
-
 type UserManagementProps = {
   userRole: Role;
 };
@@ -21,7 +20,6 @@ type User = {
   fullName: string;
   email: string;
   role: Role;
- 
   active: boolean;
   branchId: number | null;
   branchName?: string | null;
@@ -33,33 +31,27 @@ type Branch = {
   active: boolean;
 };
 
+const API_URL = "http://localhost:8081";
+
 const inputClass =
   "w-full rounded-lg border border-[#D6E2E8] bg-white px-3 py-3 text-sm text-[#292D32] outline-none transition-colors placeholder:text-[#9298A1] focus:border-[#0A506E] focus:ring-2 focus:ring-[#0A506E]/10";
 
 const roleLabels: Record<Role, string> = {
   ADMIN: "Admin",
+  SYSTEM_ADMIN: "System Admin",
+  BRANCH_ADMIN: "Branch Admin",
   REGISTRAR: "Registrar",
   OFFICER: "Officer",
   VIEWER: "Viewer",
-  SYSTEM_ADMIN: "System Admin",
-  BRANCH_ADMIN: "Branch Admin",
 };
 
 export default function UserManagement({
   userRole,
 }: UserManagementProps) {
-  if (userRole !== "ADMIN") {
-    return (
-      <div className="rounded-xl border border-[#ECEFF2] bg-white p-6">
-        <h3 className="text-lg font-bold text-[#292D32]">
-          Access Restricted
-        </h3>
-        <p className="mt-2 text-sm text-[#737B86]">
-          Only administrators can access User Management.
-        </p>
-      </div>
-    );
-  }
+  const isSystemAdmin = userRole === "SYSTEM_ADMIN";
+  const isBranchAdmin = userRole === "BRANCH_ADMIN";
+  const canManageUsers = isSystemAdmin || isBranchAdmin;
+
   const [users, setUsers] = useState<User[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
 
@@ -73,17 +65,18 @@ export default function UserManagement({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Reset password state
   const [resetUser, setResetUser] = useState<User | null>(null);
   const [resetPassword, setResetPassword] = useState("");
   const [confirmResetPassword, setConfirmResetPassword] = useState("");
   const [resetSaving, setResetSaving] = useState(false);
 
+  // Load users according to the authenticated administrator.
   const loadUsers = useCallback(async () => {
     setLoading(true);
+    setNotice("");
 
     try {
-      const response = await fetch("http://localhost:8081/api/users", {
+      const response = await fetch(`${API_URL}/api/users`, {
         credentials: "include",
         cache: "no-store",
       });
@@ -96,16 +89,17 @@ export default function UserManagement({
       setUsers(data);
     } catch (error) {
       setNotice(
-        error instanceof Error ? error.message : "Unable to load users.",
+        error instanceof Error ? error.message : "Unable to load users."
       );
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // Only System Admin needs to select branches.
   const loadBranches = useCallback(async () => {
     try {
-      const response = await fetch("http://localhost:8081/api/branches", {
+      const response = await fetch(`${API_URL}/api/branches`, {
         credentials: "include",
         cache: "no-store",
       });
@@ -118,22 +112,61 @@ export default function UserManagement({
       setBranches(data.filter((branch) => branch.active));
     } catch (error) {
       setNotice(
-        error instanceof Error ? error.message : "Unable to load branches.",
+        error instanceof Error ? error.message : "Unable to load branches."
       );
     }
   }, []);
 
   useEffect(() => {
-    void loadUsers();
-    void loadBranches();
-  }, [loadUsers, loadBranches]);
+    if (!canManageUsers) {
+      setLoading(false);
+      return;
+    }
 
+    void loadUsers();
+
+    if (isSystemAdmin) {
+      void loadBranches();
+    }
+  }, [canManageUsers, isSystemAdmin, loadUsers, loadBranches]);
+
+  // Create a new user.
   async function createUser(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setNotice("");
 
-    if (!branchId) {
+    if (!canManageUsers) {
+      setNotice("You do not have permission to create users.");
+      return;
+    }
+
+    if (isSystemAdmin && !branchId) {
       setNotice("Please select a branch.");
+      return;
+    }
+
+    const systemAdminRoles: Role[] = [
+      "BRANCH_ADMIN",
+      "REGISTRAR",
+      "OFFICER",
+      "VIEWER",
+    ];
+
+    const branchAdminRoles: Role[] = [
+      "REGISTRAR",
+      "OFFICER",
+      "VIEWER",
+    ];
+
+    if (isSystemAdmin && !systemAdminRoles.includes(role)) {
+      setNotice("Invalid role selected.");
+      return;
+    }
+
+    if (isBranchAdmin && !branchAdminRoles.includes(role)) {
+      setNotice(
+        "You can only create Registrar, Officer, or Viewer accounts."
+      );
       return;
     }
 
@@ -150,30 +183,33 @@ export default function UserManagement({
     setSaving(true);
 
     try {
-      const response = await fetch("http://localhost:8081/api/users", {
+      const requestBody = {
+        fullName: fullName.trim(),
+        email: email.trim(),
+        password,
+        role,
+        ...(isSystemAdmin ? { branchId: Number(branchId) } : {}),
+      };
+
+      const response = await fetch(`${API_URL}/api/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify({
-          fullName: fullName.trim(),
-          email: email.trim(),
-          password,
-          role,
-          branchId: Number(branchId),
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const result = await response.json().catch(() => null);
 
       if (!response.ok) {
         throw new Error(
-          result?.message ?? `Unable to create user (${response.status}).`,
+          result?.message ?? `Unable to create user (${response.status}).`
         );
       }
 
       setNotice(result?.message ?? "User created successfully.");
+
       setFullName("");
       setEmail("");
       setPassword("");
@@ -183,16 +219,22 @@ export default function UserManagement({
       await loadUsers();
     } catch (error) {
       setNotice(
-        error instanceof Error ? error.message : "Unable to create user.",
+        error instanceof Error ? error.message : "Unable to create user."
       );
     } finally {
       setSaving(false);
     }
   }
 
+  // Only System Admin can reset another user's password.
   async function resetUserPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setNotice("");
+
+    if (!isSystemAdmin) {
+      setNotice("Only System Admin can reset user passwords.");
+      return;
+    }
 
     if (!resetUser) return;
 
@@ -215,7 +257,7 @@ export default function UserManagement({
 
     try {
       const response = await fetch(
-        `http://localhost:8081/api/auth/admin-reset-password/${resetUser.id}`,
+        `${API_URL}/api/auth/admin-reset-password/${resetUser.id}`,
         {
           method: "PUT",
           headers: {
@@ -226,7 +268,7 @@ export default function UserManagement({
             newPassword: resetPassword,
             confirmPassword: confirmResetPassword,
           }),
-        },
+        }
       );
 
       const result = await response.json().catch(() => null);
@@ -234,12 +276,12 @@ export default function UserManagement({
       if (!response.ok) {
         throw new Error(
           result?.message ??
-            `Could not reset password (${response.status}).`,
+            `Could not reset password (${response.status}).`
         );
       }
 
       setNotice(
-        result?.message ?? `Password reset for ${resetUser.fullName}.`,
+        result?.message ?? `Password reset for ${resetUser.fullName}.`
       );
 
       setResetUser(null);
@@ -249,21 +291,37 @@ export default function UserManagement({
       setNotice(
         error instanceof Error
           ? error.message
-          : "Unable to reset the password. Please try again.",
+          : "Unable to reset the password. Please try again."
       );
     } finally {
       setResetSaving(false);
     }
   }
 
+  if (!canManageUsers) {
+    return (
+      <div className="rounded-xl border border-[#ECEFF2] bg-white p-6">
+        <h3 className="text-lg font-bold text-[#292D32]">
+          Access Restricted
+        </h3>
+        <p className="mt-2 text-sm text-[#737B86]">
+          You do not have permission to access User Management.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* Page heading */}
       <div>
         <h3 className="text-2xl font-bold tracking-tight text-[#292D32]">
           User Management
         </h3>
         <p className="mt-1 text-sm text-[#737B86]">
-          Create accounts and manage system users.
+          {isSystemAdmin
+            ? "Create and manage users across all branches."
+            : "Create and manage users in your branch."}
         </p>
       </div>
 
@@ -278,6 +336,7 @@ export default function UserManagement({
 
         <form onSubmit={createUser} className="space-y-5 p-5">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Full name */}
             <div>
               <label
                 htmlFor="new-full-name"
@@ -295,6 +354,7 @@ export default function UserManagement({
               />
             </div>
 
+            {/* Email */}
             <div>
               <label
                 htmlFor="new-email"
@@ -313,6 +373,7 @@ export default function UserManagement({
               />
             </div>
 
+            {/* Password */}
             <div>
               <label
                 htmlFor="new-password"
@@ -333,6 +394,7 @@ export default function UserManagement({
               />
             </div>
 
+            {/* Role */}
             <div>
               <label
                 htmlFor="new-role"
@@ -346,37 +408,53 @@ export default function UserManagement({
                 onChange={(event) => setRole(event.target.value as Role)}
                 className={inputClass}
               >
+                {isSystemAdmin && (
+                  <option value="BRANCH_ADMIN">Branch Admin</option>
+                )}
+
                 <option value="REGISTRAR">Registrar</option>
                 <option value="OFFICER">Officer</option>
                 <option value="VIEWER">Viewer</option>
-                <option value="ADMIN">Admin</option>
               </select>
             </div>
           </div>
 
-          <div>
-            <label
-              htmlFor="branch"
-              className="mb-2 block text-sm font-medium text-[#292D32]"
-            >
-              Branch <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="branch"
-              value={branchId}
-              onChange={(event) => setBranchId(event.target.value)}
-              className={inputClass}
-              required
-            >
-              <option value="">Select a branch</option>
-              {branches.map((branch) => (
-                <option key={branch.id} value={branch.id}>
-                  {branch.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Branch selection - System Admin only */}
+          {isSystemAdmin && (
+            <div>
+              <label
+                htmlFor="new-user-branch"
+                className="mb-2 block text-sm font-medium text-[#292D32]"
+              >
+                Branch <span className="text-red-500">*</span>
+              </label>
 
+              <select
+                id="new-user-branch"
+                value={branchId}
+                onChange={(event) => setBranchId(event.target.value)}
+                className={inputClass}
+                required
+              >
+                <option value="">Select a branch</option>
+
+                {branches.map((branch) => (
+                  <option key={branch.id} value={branch.id}>
+                    {branch.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Branch Admin information */}
+          {isBranchAdmin && (
+            <p className="rounded-lg border border-[#D6E2E8] bg-[#F8FAFB] p-3 text-sm text-[#454B54]">
+              The new user will automatically be assigned to your branch.
+            </p>
+          )}
+
+          {/* Notifications */}
           {notice && (
             <p
               role="status"
@@ -389,7 +467,7 @@ export default function UserManagement({
 
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || (isSystemAdmin && branches.length === 0)}
             className="rounded-lg bg-[#0A506E] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#176A87] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? "Creating..." : "+ Create User"}
@@ -400,7 +478,9 @@ export default function UserManagement({
       {/* System users table */}
       <div className="overflow-hidden rounded-xl border border-[#ECEFF2] bg-white shadow-sm">
         <div className="border-b border-[#ECEFF2] p-5">
-          <h4 className="font-bold text-[#292D32]">System Users</h4>
+          <h4 className="font-bold text-[#292D32]">
+            {isSystemAdmin ? "All System Users" : "Branch Users"}
+          </h4>
           <p className="mt-1 text-sm text-[#737B86]">
             {users.length} {users.length === 1 ? "user" : "users"} found
           </p>
@@ -414,8 +494,13 @@ export default function UserManagement({
                 <th className="px-4 py-4 font-semibold">Full Name</th>
                 <th className="px-4 py-4 font-semibold">Email</th>
                 <th className="px-4 py-4 font-semibold">Role</th>
+                {isSystemAdmin && (
+                  <th className="px-4 py-4 font-semibold">Branch</th>
+                )}
                 <th className="px-4 py-4 font-semibold">Status</th>
-                <th className="px-4 py-4 font-semibold">Actions</th>
+                {isSystemAdmin && (
+                  <th className="px-4 py-4 font-semibold">Actions</th>
+                )}
               </tr>
             </thead>
 
@@ -423,7 +508,7 @@ export default function UserManagement({
               {loading ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={isSystemAdmin ? 7 : 5}
                     className="px-4 py-12 text-center text-[#737B86]"
                   >
                     Loading users...
@@ -432,7 +517,7 @@ export default function UserManagement({
               ) : users.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={isSystemAdmin ? 7 : 5}
                     className="px-4 py-12 text-center text-[#737B86]"
                   >
                     No users found.
@@ -444,19 +529,29 @@ export default function UserManagement({
                     key={user.id}
                     className="transition-colors hover:bg-[#F8FAFB]"
                   >
-                    <td className="px-4 py-4 text-[#9298A1]">{user.id}</td>
+                    <td className="px-4 py-4 text-[#9298A1]">
+                      {user.id}
+                    </td>
 
                     <td className="px-4 py-4 font-medium text-[#292D32]">
                       {user.fullName}
                     </td>
 
-                    <td className="px-4 py-4 text-[#454B54]">{user.email}</td>
+                    <td className="px-4 py-4 text-[#454B54]">
+                      {user.email}
+                    </td>
 
                     <td className="px-4 py-4">
                       <span className="inline-flex rounded-full bg-[#E7F1F5] px-3 py-1 text-xs font-semibold text-[#0A506E]">
                         {roleLabels[user.role] ?? user.role}
                       </span>
                     </td>
+
+                    {isSystemAdmin && (
+                      <td className="px-4 py-4 text-[#454B54]">
+                        {user.branchName || "—"}
+                      </td>
+                    )}
 
                     <td className="px-4 py-4">
                       <span
@@ -470,20 +565,22 @@ export default function UserManagement({
                       </span>
                     </td>
 
-                    <td className="px-4 py-4">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setNotice("");
-                          setResetUser(user);
-                          setResetPassword("");
-                          setConfirmResetPassword("");
-                        }}
-                        className="whitespace-nowrap rounded-lg border border-[#D6E2E8] px-3 py-2 text-xs font-semibold text-[#0A506E] transition-colors hover:border-[#0A506E] hover:bg-[#E7F1F5]"
-                      >
-                        Reset Password
-                      </button>
-                    </td>
+                    {isSystemAdmin && (
+                      <td className="px-4 py-4">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNotice("");
+                            setResetUser(user);
+                            setResetPassword("");
+                            setConfirmResetPassword("");
+                          }}
+                          className="whitespace-nowrap rounded-lg border border-[#D6E2E8] px-3 py-2 text-xs font-semibold text-[#0A506E] transition-colors hover:border-[#0A506E] hover:bg-[#E7F1F5]"
+                        >
+                          Reset Password
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
@@ -492,8 +589,8 @@ export default function UserManagement({
         </div>
       </div>
 
-      {/* Reset password modal */}
-      {resetUser && (
+      {/* Reset password modal - System Admin only */}
+      {isSystemAdmin && resetUser && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
           onClick={(event) => {
@@ -516,7 +613,8 @@ export default function UserManagement({
             </h4>
 
             <p className="mt-2 text-sm text-[#737B86]">
-              Set a new password for <strong>{resetUser.fullName}</strong>.
+              Set a new password for{" "}
+              <strong>{resetUser.fullName}</strong>.
               They will need to use it at their next login.
             </p>
 
