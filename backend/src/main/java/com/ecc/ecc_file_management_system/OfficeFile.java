@@ -25,9 +25,8 @@ public class OfficeFile {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Reference number is required")
     @Column(name = "reference_number", nullable = false, unique = true)
-    private String referenceNumber;
+private String referenceNumber;
 
     @Column(name = "volume")
 private String volume;
