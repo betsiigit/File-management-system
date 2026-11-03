@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @Transactional
@@ -22,11 +23,12 @@ public class OfficeFileService {
         this.currentUserService = currentUserService;
     }
 
+    // Register a new file.
     public OfficeFile registerFile(OfficeFile officeFile) {
         AppUser currentUser = currentUserService.getCurrentUser();
 
-        // Never trust the branch supplied by the frontend.
-        // The file belongs to the authenticated user's assigned branch.
+        requireFileWritePermission(currentUser);
+
         Branch userBranch = currentUser.getBranch();
 
         if (userBranch == null) {
@@ -64,28 +66,36 @@ public class OfficeFileService {
 
         officeFile.setTitle(officeFile.getTitle().trim());
         officeFile.setFileType(officeFile.getFileType().trim());
+
+        // Always use the authenticated user's branch.
+        // Never trust a branch supplied by the frontend.
         officeFile.setBranch(userBranch);
         officeFile.setCreatedAt(LocalDateTime.now());
 
         return officeFileRepository.save(officeFile);
     }
 
-@Transactional(readOnly = true)
-public List<OfficeFile> getAllFiles() {
-    AppUser currentUser = currentUserService.getCurrentUser();
+    // Get all files.
+    // System Admin sees every branch.
+    // All other users see every file in their own branch.
+    @Transactional(readOnly = true)
+    public List<OfficeFile> getAllFiles() {
+        AppUser currentUser = currentUserService.getCurrentUser();
 
-    if (isAdmin(currentUser)) {
-        return officeFileRepository.findAll();
+        if (isSystemAdmin(currentUser)) {
+            return officeFileRepository.findAll();
+        }
+
+        Long branchId = requireBranchId(currentUser);
+        return officeFileRepository.findByBranchId(branchId);
     }
 
-    Long branchId = requireBranchId(currentUser);
-    return officeFileRepository.findByBranchId(branchId);
-}
+    // Get one file by ID.
     @Transactional(readOnly = true)
     public OfficeFile getFileById(Long id) {
         AppUser currentUser = currentUserService.getCurrentUser();
 
-        if (isAdmin(currentUser)) {
+        if (isSystemAdmin(currentUser)) {
             return officeFileRepository.findById(id)
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Office file not found with ID: " + id));
@@ -98,6 +108,7 @@ public List<OfficeFile> getAllFiles() {
                         "Office file not found with ID: " + id));
     }
 
+    // Search by reference number.
     @Transactional(readOnly = true)
     public OfficeFile getFileByReferenceNumber(String referenceNumber) {
         AppUser currentUser = currentUserService.getCurrentUser();
@@ -108,7 +119,7 @@ public List<OfficeFile> getAllFiles() {
 
         String normalizedReference = referenceNumber.trim();
 
-        if (isAdmin(currentUser)) {
+        if (isSystemAdmin(currentUser)) {
             return officeFileRepository
                     .findByReferenceNumber(normalizedReference)
                     .orElseThrow(() -> new IllegalArgumentException(
@@ -125,8 +136,13 @@ public List<OfficeFile> getAllFiles() {
                                 + normalizedReference));
     }
 
+    // Update an existing file.
     public OfficeFile updateFile(Long id, OfficeFile updatedFile) {
-        // This lookup enforces branch access before an update can happen.
+        AppUser currentUser = currentUserService.getCurrentUser();
+
+        requireFileWritePermission(currentUser);
+
+        // This lookup also enforces branch access.
         OfficeFile existingFile = getFileById(id);
 
         String newReference = updatedFile.getReferenceNumber();
@@ -169,39 +185,59 @@ public List<OfficeFile> getAllFiles() {
         existingFile.setRemarks(updatedFile.getRemarks());
         existingFile.setDocumentPath(updatedFile.getDocumentPath());
 
-        // Preserve existing volume and status behavior.
+        // Preserve volume and status behavior.
         existingFile.setVolume(updatedFile.getVolume());
         existingFile.setStatus(updatedFile.getStatus());
 
-        // Do not change the existing file's branch during an update.
+        // Never change the branch during an update.
         return officeFileRepository.save(existingFile);
     }
 
+    // Delete a file.
     public void deleteFile(Long id) {
-        // This lookup enforces branch access before deletion.
+        AppUser currentUser = currentUserService.getCurrentUser();
+
+        requireFileWritePermission(currentUser);
+
+        // Enforces access to the file before deletion.
         OfficeFile existingFile = getFileById(id);
         officeFileRepository.delete(existingFile);
     }
 
-   private boolean isAdmin(AppUser user) {
-    return user.getRole() != null
-            && "SYSTEM_ADMIN".equalsIgnoreCase(user.getRole().trim());
-}
+    // Identify the overall System Admin.
+    private boolean isSystemAdmin(AppUser user) {
+        return user.getRole() != null
+                && "SYSTEM_ADMIN".equalsIgnoreCase(user.getRole().trim());
+    }
+
+    // Roles allowed to register, update, and delete files.
+    private void requireFileWritePermission(AppUser user) {
+        String role = user.getRole() == null
+                ? ""
+                : user.getRole().trim().toUpperCase(Locale.ROOT);
+
+        if (!role.equals("SYSTEM_ADMIN")
+                && !role.equals("BRANCH_ADMIN")
+                && !role.equals("REGISTRAR")
+                && !role.equals("OFFICER")) {
+            throw new AccessDeniedException(
+                    "You do not have permission to modify office files.");
+        }
+    }
+
+    // Get the authenticated user's branch.
     private Long requireBranchId(AppUser user) {
 
-    // System Admin manages files across all branches.
-    if ("SYSTEM_ADMIN".equalsIgnoreCase(user.getRole())) {
-        return null;
-    }
+        // System Admin access is handled separately by the calling methods.
+        if (isSystemAdmin(user)) {
+            return null;
+        }
 
-    // All other users must have an assigned branch.
-    if (user.getBranch() == null
-            || user.getBranch().getId() == null) {
-        throw new AccessDeniedException(
-                "Your account does not have a branch assigned.");
-    }
+        if (user.getBranch() == null || user.getBranch().getId() == null) {
+            throw new AccessDeniedException(
+                    "Your account does not have a branch assigned.");
+        }
 
-    // Branch users are restricted to their assigned branch.
-    return user.getBranch().getId();
-}
+        return user.getBranch().getId();
+    }
 }
