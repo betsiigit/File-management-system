@@ -3,16 +3,12 @@
 
 import { useState, type FormEvent } from "react";
 import EthiopianDatePicker from "@/components/reports/EthiopianDatePicker";
-import {
-  ethiopianToGregorian,
-  formatEthiopianDate,
-  gregorianToEthiopian,
-} from "@/utils/ethiopianDate";
+import { ethiopianToGregorian } from "@/utils/ethiopianDate";
 
 export type RegisteredFileData = {
   fileType: "Incoming" | "Outgoing";
   reference: string;
-  volume:string;
+  volume: string;
   status: string;
   outgoing_date: string;
   date: string;
@@ -21,104 +17,210 @@ export type RegisteredFileData = {
   assignedOfficer: string;
   title: string;
   remarks: string;
-  
-attachments: File[];
+  attachments: File[];
+};
+
+type DepartmentStructure = {
+  label: string;
+  departments: Record<
+    string,
+    {
+      label: string;
+      workProcesses: Record<string, string>;
+    }
+  >;
 };
 
 type FileRegistrationFormProps = {
-  departments: string[];
+  departmentStructure: Record<string, DepartmentStructure>;
   officers?: string[];
   onRegister: (file: RegisteredFileData) => void;
   onCancel?: () => void;
 };
 
 export default function FileRegistrationForm({
-  departments,
+  departmentStructure,
   officers = [],
   onRegister,
   onCancel,
 }: FileRegistrationFormProps) {
-  const [fileType, setFileType] = useState<"Incoming" | "Outgoing">("Incoming");
-  const [reference, setReference] = useState("");
+  const [fileType, setFileType] =
+    useState<"Incoming" | "Outgoing">("Incoming");
+
   const [volume, setVolume] = useState("");
-const [outgoing_date, setOutgoingDate] = useState("");
+  const [outgoing_date, setOutgoingDate] = useState("");
   const [date, setDate] = useState("");
   const [pages, setPages] = useState("1");
-  const [department, setDepartment] = useState("");
+
+  // Cascading department selections.
+  const [sector, setSector] = useState("");
+  const [departmentCode, setDepartmentCode] = useState("");
+  const [workProcessCode, setWorkProcessCode] = useState("");
+
   const [assignedOfficer, setAssignedOfficer] = useState("");
   const [title, setTitle] = useState("");
   const [remarks, setRemarks] = useState("");
- const [attachments, setAttachments] = useState<File[]>([]);
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [error, setError] = useState("");
 
   const inputClass =
     "mt-2 w-full rounded-lg border border-[#D6E2E8] bg-white px-3 py-3 text-sm text-[#292D32] outline-none transition-colors duration-200 placeholder:text-[#9298A1] focus:border-[#0A506E] focus:ring-2 focus:ring-[#0A506E]/10";
 
-  const labelClass = "text-sm font-semibold text-[#454B54]";
+  const labelClass =
+    "text-sm font-semibold text-[#454B54]";
 
-function handleSubmit(event: FormEvent<HTMLFormElement>) {
-  event.preventDefault();
+  // --------------------------------------------------
+  // CASCADING DEPARTMENT OPTIONS
+  // --------------------------------------------------
 
-  if (
-    !reference.trim() ||
-    !volume.trim() ||
-    !date ||
-    !department ||
-    !title.trim() ||
-    !pages ||
-    Number(pages) < 1 ||
-    !Number.isInteger(Number(pages))
-  ) {
-    setError("Please complete all required fields with valid values.");
-    return;
-  }
+  // All available sectors.
+  const availableSectors = Object.entries(departmentStructure);
 
-  if (fileType === "Outgoing" && !outgoing_date) {
-    setError("Please select an outgoing date.");
-    return;
-  }
+  // Departments belonging to the selected sector.
+  const availableDepartments = sector
+    ? Object.entries(
+        departmentStructure[sector]?.departments ?? {}
+      )
+    : [];
 
-  let gregorianDate: string;
-  let gregorianOutgoingDate = "";
+  // Work processes belonging to the selected department.
+  const availableWorkProcesses =
+    sector && departmentCode
+      ? Object.entries(
+          departmentStructure[sector]?.departments[departmentCode]
+            ?.workProcesses ?? {}
+        )
+      : [];
 
-  try {
-    // Convert Ethiopian dates to Gregorian before sending to the backend.
-    gregorianDate = ethiopianToGregorian(date);
+  // The deepest selected code is saved and used by the backend.
+  const selectedDepartment =
+    workProcessCode || departmentCode || sector;
 
-    if (fileType === "Outgoing") {
-      gregorianOutgoingDate = ethiopianToGregorian(outgoing_date);
+  // Display the label of the deepest selected item.
+  const selectedDepartmentLabel = (() => {
+    if (workProcessCode) {
+      return (
+        availableWorkProcesses.find(
+          ([code]) => code === workProcessCode
+        )?.[1] || workProcessCode
+      );
     }
-  } catch {
-    setError("Please select valid Ethiopian dates.");
-    return;
+
+    if (departmentCode) {
+      return (
+        availableDepartments.find(
+          ([code]) => code === departmentCode
+        )?.[1].label || departmentCode
+      );
+    }
+
+    return departmentStructure[sector]?.label || "";
+  })();
+
+  // --------------------------------------------------
+  // DEPARTMENT CHANGE HANDLERS
+  // --------------------------------------------------
+
+  function handleSectorChange(value: string) {
+    setSector(value);
+    setDepartmentCode("");
+    setWorkProcessCode("");
+    setError("");
   }
 
-  setError("");
+  function handleDepartmentChange(value: string) {
+    setDepartmentCode(value);
+    setWorkProcessCode("");
+    setError("");
+  }
 
-  onRegister({
-    fileType,
-    reference: reference.trim(),
-    date: gregorianDate,
-    outgoing_date: gregorianOutgoingDate,
-    pages: Number(pages),
-    department,
-    assignedOfficer,
-    title: title.trim(),
-    remarks: remarks.trim(),
-    attachments,
-    volume: volume.trim(),
-    status: "Pending",
-  });
-}
+  function handleWorkProcessChange(value: string) {
+    setWorkProcessCode(value);
+    setError("");
+  }
+
+  // --------------------------------------------------
+  // FORM SUBMISSION
+  // --------------------------------------------------
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (
+      !volume.trim() ||
+      !date ||
+      !selectedDepartment ||
+      !title.trim() ||
+      !pages ||
+      Number(pages) < 1 ||
+      !Number.isInteger(Number(pages))
+    ) {
+      setError(
+        "Please complete all required fields with valid values."
+      );
+      return;
+    }
+
+    if (fileType === "Outgoing" && !outgoing_date) {
+      setError("Please select an outgoing date.");
+      return;
+    }
+
+    let gregorianDate: string;
+    let gregorianOutgoingDate = "";
+
+    try {
+      // Convert Ethiopian dates to Gregorian before sending.
+      gregorianDate = ethiopianToGregorian(date);
+
+      if (fileType === "Outgoing") {
+        gregorianOutgoingDate =
+          ethiopianToGregorian(outgoing_date);
+      }
+    } catch {
+      setError("Please select valid Ethiopian dates.");
+      return;
+    }
+
+    setError("");
+
+    onRegister({
+      fileType,
+
+      // The backend generates the actual reference number.
+      reference: "",
+
+      date: gregorianDate,
+      outgoing_date: gregorianOutgoingDate,
+      pages: Number(pages),
+
+      // Save the deepest selected department code.
+      department: selectedDepartment,
+
+      assignedOfficer,
+      title: title.trim(),
+      remarks: remarks.trim(),
+      attachments,
+      volume: volume.trim(),
+      status: "Pending",
+    });
+  }
+
+  // --------------------------------------------------
+  // CLEAR FORM
+  // --------------------------------------------------
 
   function handleClear() {
     setFileType("Incoming");
-    setReference("");
     setVolume("");
     setOutgoingDate("");
     setDate("");
     setPages("1");
-    setDepartment("");
+
+    setSector("");
+    setDepartmentCode("");
+    setWorkProcessCode("");
+
     setAssignedOfficer("");
     setTitle("");
     setRemarks("");
@@ -126,27 +228,44 @@ function handleSubmit(event: FormEvent<HTMLFormElement>) {
     setError("");
   }
 
+  // --------------------------------------------------
+  // FORM UI
+  // --------------------------------------------------
+
   return (
     <div className="overflow-hidden rounded-xl border border-[#ECEFF2] bg-white shadow-sm">
+
+      {/* Header */}
       <div className="border-b border-[#ECEFF2] bg-[#0A506E] px-6 py-5 text-white">
         <h2 className="text-xl font-bold tracking-tight">
           Register File
         </h2>
+
         <p className="mt-1 text-sm text-white/75">
           Register and assign an incoming or outgoing office file.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6 p-6">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-6 p-6"
+      >
+
+        {/* Main registration details */}
         <div className="grid gap-5 sm:grid-cols-2">
+
+          {/* File Type */}
           <div>
             <label className={labelClass}>
               File Type *
             </label>
+
             <select
               value={fileType}
               onChange={(e) =>
-                setFileType(e.target.value as "Incoming" | "Outgoing")
+                setFileType(
+                  e.target.value as "Incoming" | "Outgoing"
+                )
               }
               className={inputClass}
               required
@@ -156,51 +275,64 @@ function handleSubmit(event: FormEvent<HTMLFormElement>) {
             </select>
           </div>
 
+          {/* Automatic Reference */}
           <div>
             <label className={labelClass}>
-              Reference Number *
+              Reference Number
             </label>
+
+            <div className={`${inputClass} flex items-center gap-2 bg-[#F4F5F9] text-[#737B86]`}>
+              <span className="font-medium">
+                <span className="mr-2">✦</span>
+                Generated automatically after registration
+              </span>
+            </div>
+
+            <p className="mt-1 text-xs text-[#737B86]">
+              The system assigns the reference number when the file is saved.
+            </p>
+          </div>
+
+          {/* Volume */}
+          <div>
+            <label className={labelClass}>
+              Volume *
+            </label>
+
             <input
-              value={reference}
-              onChange={(e) => setReference(e.target.value)}
-              placeholder="e.g. REF-001"
+              type="text"
+              value={volume}
+              onChange={(e) => setVolume(e.target.value)}
+              placeholder="e.g. Volume 1"
               className={inputClass}
               required
             />
           </div>
+
+          {/* Registration Date */}
           <div>
-  <label className={labelClass}>
-    Volume *
-  </label>
-  <input
-    type="text"
-    value={volume}
-    onChange={(e) => setVolume(e.target.value)}
-    placeholder="e.g. Volume 1"
-    className={inputClass}
-    required
-  />
-</div>
-<div>
-  <EthiopianDatePicker
-    label="Registration Date *"
-    value={date}
-    onChange={setDate}
-  />
-</div>
+            <EthiopianDatePicker
+              label="Registration Date *"
+              value={date}
+              onChange={setDate}
+            />
+          </div>
 
-<div>
-  <EthiopianDatePicker
-    label="Outgoing Date *"
-    value={outgoing_date}
-    onChange={setOutgoingDate}
-  />
-</div>
+          {/* Outgoing Date */}
+          <div>
+            <EthiopianDatePicker
+              label="Outgoing Date"
+              value={outgoing_date}
+              onChange={setOutgoingDate}
+            />
+          </div>
 
+          {/* Number of Pages */}
           <div>
             <label className={labelClass}>
               Number of Pages *
             </label>
+
             <input
               type="number"
               min="1"
@@ -213,53 +345,163 @@ function handleSubmit(event: FormEvent<HTMLFormElement>) {
             />
           </div>
 
-          <div>
-            <label className={labelClass}>
-              Department *
-            </label>
-            <select
-              value={department}
-              onChange={(e) => setDepartment(e.target.value)}
-              className={inputClass}
-              required
-            >
-              <option value="">Select department</option>
-              {departments.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className={labelClass}>
-              Assigned Officer
-            </label>
-            <select
-              value={assignedOfficer}
-              onChange={(e) => setAssignedOfficer(e.target.value)}
-              className={inputClass}
-            >
-              <option value="">Select officer</option>
-              {officers.map((officer) => (
-                <option key={officer} value={officer}>
-                  {officer}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
 
+        {/* Department Selection */}
+        <div className="space-y-4 rounded-lg border border-[#D6E2E8] bg-[#F8FAFC] p-5">
+
+          <div>
+            <h3 className="font-bold text-[#292D32]">
+              Department Information
+            </h3>
+
+            <p className="mt-1 text-xs text-[#737B86]">
+              Select the sector, department, and work process.
+              You can stop at any level.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+
+            {/* Sector */}
+            <div>
+              <label className={labelClass}>
+                1. Sector *
+              </label>
+
+              <select
+                value={sector}
+                onChange={(e) =>
+                  handleSectorChange(e.target.value)
+                }
+                className={inputClass}
+                required
+              >
+                <option value="">Select sector</option>
+
+                {availableSectors.map(([code, item]) => (
+                  <option key={code} value={code}>
+                    {code} — {item.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Department */}
+            <div>
+              <label className={labelClass}>
+                2. Department
+              </label>
+
+              <select
+                value={departmentCode}
+                onChange={(e) =>
+                  handleDepartmentChange(e.target.value)
+                }
+                className={inputClass}
+                disabled={!sector}
+              >
+                <option value="">Select department</option>
+
+                {availableDepartments.map(([code, item]) => (
+                  <option key={code} value={code}>
+                    {code} — {item.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Work Process */}
+            <div className="sm:col-span-2">
+              <label className={labelClass}>
+                3. Work Process / Subdepartment
+              </label>
+
+              <select
+                value={workProcessCode}
+                onChange={(e) =>
+                  handleWorkProcessChange(e.target.value)
+                }
+                className={inputClass}
+                disabled={
+                  !departmentCode ||
+                  availableWorkProcesses.length === 0
+                }
+              >
+                <option value="">
+                  Select work process (optional)
+                </option>
+
+                {availableWorkProcesses.map(([code, label]) => (
+                  <option key={code} value={code}>
+                    {code} — {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+          </div>
+
+          {/* Selected Department */}
+          <div className="rounded-lg border border-[#D6E2E8] bg-white p-3">
+            <p className="text-xs font-semibold text-[#737B86]">
+              Selected department code
+            </p>
+
+            <p className="mt-1 text-lg font-bold text-[#0A506E]">
+              {selectedDepartment || "Not selected"}
+            </p>
+
+            {selectedDepartmentLabel && (
+              <p className="mt-1 text-xs text-[#737B86]">
+                {selectedDepartmentLabel}
+              </p>
+            )}
+
+            <p className="mt-2 text-xs text-[#737B86]">
+              This code will be used as the beginning of your
+              automatically generated reference number.
+            </p>
+          </div>
+
+        </div>
+
+        {/* Assigned Officer */}
+        <div>
+          <label className={labelClass}>
+            Assigned Officer
+          </label>
+
+          <select
+            value={assignedOfficer}
+            onChange={(e) =>
+              setAssignedOfficer(e.target.value)
+            }
+            className={inputClass}
+          >
+            <option value="">Select officer</option>
+
+            {officers.map((officer) => (
+              <option key={officer} value={officer}>
+                {officer}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Additional Details */}
         <div className="space-y-5 border-t border-[#ECEFF2] pt-5">
+
           <h3 className="font-bold text-[#292D32]">
             Additional Details
           </h3>
 
+          {/* Title */}
           <div>
             <label className={labelClass}>
               Subject / File Title *
             </label>
+
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -269,10 +511,12 @@ function handleSubmit(event: FormEvent<HTMLFormElement>) {
             />
           </div>
 
+          {/* Remarks */}
           <div>
             <label className={labelClass}>
               Remarks and Description
             </label>
+
             <textarea
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
@@ -281,32 +525,38 @@ function handleSubmit(event: FormEvent<HTMLFormElement>) {
               maxLength={2000}
               className={`${inputClass} resize-y`}
             />
+
             <p className="mt-1 text-right text-xs text-[#9298A1]">
               {remarks.length}/2000 characters
             </p>
           </div>
 
+          {/* Attachments */}
           <div>
             <label className={labelClass}>
               Attach Document (optional)
             </label>
-           
-<input
-  type="file"
-  accept=".pdf,application/pdf"
-  multiple
-  onChange={(e) =>
-    setAttachments(Array.from(e.target.files || []))
-  }
-  className={`${inputClass} file:mr-3 file:rounded-md file:border-0 file:bg-[#E7F1F5] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[#0A506E] hover:file:bg-[#D9EAF0]`}
-/>
+
+            <input
+              type="file"
+              accept=".pdf,application/pdf"
+              multiple
+              onChange={(e) =>
+                setAttachments(
+                  Array.from(e.target.files || [])
+                )
+              }
+              className={`${inputClass} file:mr-3 file:rounded-md file:border-0 file:bg-[#E7F1F5] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[#0A506E] hover:file:bg-[#D9EAF0]`}
+            />
 
             <p className="mt-1 text-xs text-[#737B86]">
               PDF files only. The attachment is selected locally for now.
             </p>
           </div>
+
         </div>
 
+        {/* Error Message */}
         {error && (
           <p
             role="alert"
@@ -316,7 +566,9 @@ function handleSubmit(event: FormEvent<HTMLFormElement>) {
           </p>
         )}
 
+        {/* Actions */}
         <div className="flex flex-wrap justify-end gap-3 border-t border-[#ECEFF2] pt-5">
+
           {onCancel && (
             <button
               type="button"
@@ -341,7 +593,9 @@ function handleSubmit(event: FormEvent<HTMLFormElement>) {
           >
             Register File
           </button>
+
         </div>
+
       </form>
     </div>
   );

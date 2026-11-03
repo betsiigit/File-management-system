@@ -90,14 +90,332 @@ const initialFiles: OfficeFile[] = [
   },
 ];
 
-const departments = [
-  "Administration",
-  "Finance",
-  "Human Resources",
-  "Procurement",
-  "Information Technology",
-];
+type DepartmentStructure = {
+  label: string;
+  departments: Record<
+    string,
+    {
+      label: string;
+      workProcesses: Record<string, string>;
+    }
+  >;
+};
+const departmentStructure: Record<string, DepartmentStructure> = {
+  // =========================================================
+  // SECTOR 4 — COMMISSIONER
+  // =========================================================
+  "4": {
+    label: "Commissioner",
+    departments: {
+      "4.0": {
+        label: "Commissioner's Office",
+        workProcesses: {
+          "4.0.1": "Commissioner's Office and Senior Expert Work Process Level",
+          "4.0.2": "Advisor to the Commissioner and Legal Affairs Advisor",
+          "4.0.3": "Commissioner's Change Advisor",
+          "4.0.4": "Commissioner's International and Public Relations Affairs Advisor",
+          "4.0.5": "Commissioner's Technical Affairs Advisor",
+          "4.0.8": "Commissioner's Research Affairs Advisor",
+          "4.0.9": "Commissioner's Special Affairs Advisor",
+          "4.0.10": "General Complaints Handling Team Coordinator",
+          "4.0.11": "Commission Office Legal Accountability Works Coordinator",
+          "4.0.12": "Commission Office Offenders/Violators Works Coordinator",
+          "4.0.13": "Commission Office Subsequent Capacity Building Works Coordinator",
+          "4.0.14": "Commission Office Information Technology Works Coordinator",
+        },
+      },
 
+      "4.06": {
+        label: "Communication Directorate",
+        workProcesses: {},
+      },
+
+      "4.1": {
+        label: "Planning and Budget Administration Directorate",
+        workProcesses: {
+          "4.1.0": "Planning Performance Monitoring and Evaluation Work Process Coordinator",
+          "4.1.1": "Budget Preparation and Administration Work Process Coordinator",
+        },
+      },
+
+      "4.2": {
+        label: "Strategic Partnership Directorate",
+        workProcesses: {
+          "4.2.1": "Domestic Strategic Partnership Work Process Coordinator",
+          "4.2.2": "International Partnership Work Process Coordinator",
+          "4.2.3": "Women and Social Affairs Directorate",
+        },
+      },
+
+      "4.3": {
+        label: "Ethics Directorate",
+        workProcesses: {
+          "4.3.3": "Ethics Training and Working System Monitoring Work Process",
+          "4.3.4": "Disciplinary Cases Investigation Work Process Coordinator",
+        },
+      },
+
+      "4.4": {
+        label: "Internal Audit Directorate",
+        workProcesses: {
+          "4.4.0": "Internal Audit Work Process",
+        },
+      },
+
+      "4.6": {
+        label: "Research Results Utilization Directorate",
+        workProcesses: {},
+      },
+
+      "4.7": {
+        label: "Research Information Technology Center",
+        workProcesses: {
+          "4.7.0": "Head, Technical Program Office",
+          "4.7.1": "Research Technology Administration Directorate",
+          "4.7.2": "Research Technology Infrastructure Development Directorate",
+          "4.7.3": "Research Information Management Directorate (Big Data Management)",
+          "4.7.4": "Research Technology Development Directorate",
+          "4.7.5": "Research Technology Maintenance and Testing Program Work Process",
+          "4.7.6": "Freight and Border Control Technologies Development and Administration Directorate",
+          "4.7.6.0": "Freight and Border Control Technologies Development and Administration Work Process",
+        },
+      },
+
+      "4.8": {
+        label: "Construction Project Management Directorate",
+        workProcesses: {},
+      },
+
+      "4.9": {
+        label: "Research Technology Audit Directorate",
+        workProcesses: {},
+      },
+
+      "4.10": {
+        label: "Study and Research Directorate",
+        workProcesses: {
+          "4.10.0": "Continuous Development Work Process",
+        },
+      },
+
+      "4.11": {
+        label: "Standard Formulation Audit and Quality Assurance Directorate",
+        workProcesses: {
+          "4.11.0": "Standard Formulation Audit and Quality Assurance Work Process Coordinator",
+        },
+      },
+
+      "4.15": {
+        label: "Change Action Support and Monitoring Directorate",
+        workProcesses: {},
+      },
+    },
+  },
+
+  // =========================================================
+  // SECTOR 6 — PLANNING
+  // =========================================================
+  "6": {
+    label: "Planning Sector",
+    departments: {
+      "6.0": {
+        label: "Research Planning Sector Office",
+        workProcesses: {
+          "6.0.2": "Planning Sector Office Works Coordinator",
+          "6.0.3": "Planning Sector Consultative Advisor",
+          "6.0.4": "Planning Sector Office Works Coordinator",
+          "6.0.1": "Transit and Warehouse Administration Directorate",
+          "6.0.6": "Transit and Research Warehouse Administration Work Process",
+        },
+      },
+
+      "6.1": {
+        label: "Research Plan Formulation Directorate",
+        workProcesses: {},
+      },
+
+      "6.2": {
+        label: "Pricing Directorate",
+        workProcesses: {
+          "6.2.3": "Pricing Work Process Coordinator",
+        },
+      },
+
+      "6.3": {
+        label: "Tariff Classification and Legislation Directorate",
+        workProcesses: {
+          "6.3.0": "Tariff Classification and Policy Issues Work Process Coordinator",
+          "6.3.3": "Legislation Formulation Work Process Coordinator",
+        },
+      },
+
+      "6.4": {
+        label: "Products Support and Monitoring Directorate",
+        workProcesses: {
+          "6.4.0": "Products and Investment Support and Monitoring Work Process Coordinator",
+          "6.4.1": "Government Tax Exemption Rights Administration Work Process Coordinator",
+        },
+      },
+
+      "6.5": {
+        label: "Research Operations Development Directorate",
+        workProcesses: {},
+      },
+
+      "6.6": {
+        label: "Revenue Account and Goods Administration Directorate",
+        workProcesses: {
+          "6.6.0": "Revenue Account Administration Work Process Coordinator",
+          "6.6.1": "Goods Administration Work Process Coordinator",
+        },
+      },
+    },
+  },
+
+  // =========================================================
+  // SECTOR 7 — LEGAL ENFORCEMENT
+  // =========================================================
+  "7": {
+    label: "Legal Enforcement Sector",
+    departments: {
+      "7.0": {
+        label: "Legal Enforcement Sector Office",
+        workProcesses: {
+          "7.0.1": "Legal Enforcement Sector Deputy Commissioner Advisor",
+          "7.0.3": "Legal Enforcement Sector Office Works Coordinator",
+          "7.0.4": "Legal Enforcement Sector Office Works Coordinator",
+        },
+      },
+
+      "7.1": {
+        label: "Intelligence Work Operation Directorate",
+        workProcesses: {
+          "7.1.0": "Intelligence Work Operation Systems and Support Work Process Coordinator",
+          "7.1.2": "Intelligence Work Operation Development Work Process Coordinator",
+        },
+      },
+
+      "7.2": {
+        label: "Customers Education and Support Directorate",
+        workProcesses: {},
+      },
+
+      "7.3": {
+        label: "Post-Clearance Audit Center",
+        workProcesses: {
+          "7.3.0": "Post-Clearance Audit Systems and Support Work Process",
+
+          "7.3.1/ሀ": "Post-Clearance Audit Directorate (A)",
+          "7.3.1/ሀ/1": "Post-Clearance Audit Systems and Support Work Process",
+          "7.3.1/ሀ/2": "Post-Clearance Audit Systems and Support Work Process",
+          "7.3.1/ሀ/3": "Post-Clearance Audit Systems and Support Work Process",
+
+          // Preserved exactly as it appears in the supplied document.
+          "3.1/ሀ/4": "Post-Clearance Audit Systems and Support Work Process",
+
+          "7.3.1/ለ": "Post-Clearance Audit Directorate (B)",
+          "7.3.1.5": "Post-Clearance Audit Systems and Support Work Process",
+          "7.3.1.6": "Post-Clearance Audit Systems and Support Work Process",
+          "7.3.1.7": "Post-Clearance Audit Systems and Support Work Process",
+          "7.3.1.8": "Post-Clearance Audit Systems and Support Work Process",
+          "7.3.1.9": "Post-Clearance Audit Systems and Support Work Process",
+          "7.3.1.10": "Post-Clearance Audit Systems and Support Work Process",
+        },
+      },
+
+      "7.4": {
+        label: "Research Investment Directorate",
+        workProcesses: {
+          "7.4.0": "Investment Support and Monitoring Work Process",
+        },
+      },
+
+      "7.5": {
+        label: "Legal Service Directorate",
+        workProcesses: {},
+      },
+
+      "7.6": {
+        label: "Contraband Prevention Directorate",
+        workProcesses: {
+          "7.6.0": "Contraband Prevention and Support Work Process Coordinator",
+          "7.6.1": "Contraband Monitoring and Action Taking Work Process Coordinator",
+        },
+      },
+
+      "7.7": {
+        label: "Investment Audit Directorate",
+        workProcesses: {
+          "7.7.0": "Investment Audit Work Process Coordinator",
+        },
+      },
+    },
+  },
+
+  // =========================================================
+  // SECTOR 8 — CONTINUOUS CAPACITY BUILDING
+  // =========================================================
+  "8": {
+    label: "Continuous Capacity Building Sector",
+    departments: {
+      "8.0": {
+        label: "Continuous Capacity Building Sector Office",
+        workProcesses: {
+          "8.0.2": "Continuous Capacity Building Sector Deputy Commissioner Advisor",
+          "8.0.8": "Continuous Capacity Building Sector Office Works Advisor",
+          "8.0.1": "Human Resource Management Directorate",
+          "8.0.6": "Human Resource Management Work Process Coordinator",
+        },
+      },
+
+      "8.1": {
+        label: "Training Center",
+        workProcesses: {
+          "8.1.1": "Preparation and Training Coordination Directorate",
+          "8.1.2": "Training Input and Supply Directorate",
+        },
+      },
+
+      "8.2": {
+        label: "Procurement and Finance Directorate",
+        workProcesses: {
+          "8.2.0": "Procurement Team Coordinator",
+          "8.2.1": "Payment Team Coordinator",
+          "8.2.2": "Account Summary and Branch Support Team Coordinator",
+          "8.2.3": "Procurement Administration Work Process Coordinator",
+          "8.2.4": "Financial Administration Work Process Coordinator",
+          "8.2.5": "Procurement Team Coordinator",
+          "8.2.6": "Procurement Team Coordinator",
+          "8.2.7": "Payment Team Coordinator",
+        },
+      },
+
+      "8.6": {
+        label: "Property Administration Directorate",
+        workProcesses: {
+          "8.6.0": "Continuous Property Administration Work Process Coordinator",
+          "8.61": "Remaining/Surplus Property Administration Work Process Coordinator",
+        },
+      },
+
+      "8.7": {
+        label: "General Services Directorate",
+        workProcesses: {
+          "8.7.0": "General Services Work Process Coordinator",
+          "8.7.1": "Vehicle and Garage Administration Work Process Coordinator",
+        },
+      },
+
+      // The supplied document lists 8.3.4 but does not provide its parent department.
+      "8.3": {
+        label: "Department not specified in supplied document",
+        workProcesses: {
+          "8.3.4": "Disciplinary Cases Appeal Committee",
+        },
+      },
+    },
+  },
+};
 export default function Home() {
   const [language, setLanguage] = useState<"English" | "Amharic">("English");
 
@@ -1594,15 +1912,15 @@ export default function Home() {
               activeMenu !== "Reports" && (
                 <>
                   {activeMenu === "Register File" && showForm ? (
-                    <FileRegistrationForm
-                      departments={departments}
-                      onRegister={registerFile}
-                      onCancel={() => {
-                        setShowForm(false);
-                        setActiveMenu("Dashboard");
-                        setNotice("");
-                      }}
-                    />
+                  <FileRegistrationForm
+  departmentStructure={departmentStructure}
+  onRegister={registerFile}
+  onCancel={() => {
+    setShowForm(false);
+    setActiveMenu("Dashboard");
+    setNotice("");
+  }}
+/>
                   ) : activeMenu === "All Files" ||
                     activeMenu === "Dashboard" ? (
                     <>
