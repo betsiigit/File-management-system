@@ -131,7 +131,7 @@ public class OfficeFileService {
                 ? 0
                 : highestSequence) + 1;
 
-        String sequence = String.format("%03d", nextSequence);
+       String sequence = String.format("%04d", nextSequence);
 
         // Generate the reference number.
         String referenceNumber = department

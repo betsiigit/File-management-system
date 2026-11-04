@@ -524,6 +524,7 @@ export default function Home() {
   const [showBulkEmployeeForm, setShowBulkEmployeeForm] = useState(false);
   const [bulkEmployeeText, setBulkEmployeeText] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [officers, setOfficers] = useState<string[]>([]);
 
   const pending = files.filter(
     (file) => file.status === "Pending"
@@ -616,7 +617,20 @@ export default function Home() {
       }
 
       const data: Employee[] = await response.json();
-      setEmployees(data);
+
+// Keep all employees for Employee Management
+setEmployees(data);
+
+// Only active employees appear in Assigned Officer dropdown
+const activeOfficers = data
+  .filter(
+    (employee) =>
+      employee.status?.toLowerCase() === "active"
+  )
+  .map((employee) => employee.fullName)
+  .filter((name) => Boolean(name?.trim()));
+
+setOfficers(activeOfficers);
     } catch (error) {
       console.error("Error loading employees:", error);
     }
@@ -1903,8 +1917,9 @@ async function registerFile(data: RegisteredFileData) {
               activeMenu !== "Reports" && (
                 <>
                   {activeMenu === "Register File" && showForm ? (
-                  <FileRegistrationForm
+   <FileRegistrationForm
   departmentStructure={departmentStructure}
+  officers={officers}
   onRegister={registerFile}
   onCancel={() => {
     setShowForm(false);
