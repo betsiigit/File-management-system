@@ -1903,9 +1903,13 @@ async function registerFile(data: RegisteredFileData) {
 
             {activeMenu === "About" && <About />}
 
-            {activeMenu === "Reports" && (
-              <Reports employees={employees} files={files} />
-            )}
+          {activeMenu === "Reports" && (
+  <Reports
+    employees={employees}
+    files={files}
+    departmentStructure={departmentStructure}
+  />
+)}
 
             {activeMenu !== "Active Employees" &&
               activeMenu !== "Inactive Employees" &&

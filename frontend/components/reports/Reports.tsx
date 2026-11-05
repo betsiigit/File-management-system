@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Employee } from "@/components/employees/EmployeeTable";
-import { toGC } from "kenat";
+import { toGC, toEC } from "kenat";
 import EthiopianDatePicker from "@/components/reports/EthiopianDatePicker";
 
 type ReportFile = {
@@ -27,9 +27,38 @@ type ReportSummary = {
   archivedFiles: number;
 };
 
+type DepartmentStructure = {
+  label: string;
+  departments: Record<
+    string,
+    {
+      label: string;
+      workProcesses: Record<string, string>;
+    }
+  >;
+};
+
 type Props = {
   employees: Employee[];
   files: ReportFile[];
+  departmentStructure: Record<string, DepartmentStructure>;
+};
+
+type ReportType =
+  | "Complete"
+  | "Files"
+  | "Employees"
+  | "Jobs"
+  | "Transfers"
+  | "Letters";
+
+const emptySummary: ReportSummary = {
+  totalFiles: 0,
+  incomingFiles: 0,
+  outgoingFiles: 0,
+  pendingFiles: 0,
+  approvedFiles: 0,
+  archivedFiles: 0,
 };
 
 function MetricCard({
@@ -53,23 +82,6 @@ function MetricCard({
     <div className={`rounded-xl border p-4 ${colors[color]}`}>
       <p className="text-sm font-medium opacity-80">{label}</p>
       <p className="mt-2 text-2xl font-bold">{value}</p>
-    </div>
-  );
-}
-
-function SectionTitle({
-  title,
-  description,
-}: {
-  title: string;
-  description?: string;
-}) {
-  return (
-    <div>
-      <h3 className="text-lg font-bold text-[#092c45]">{title}</h3>
-      {description && (
-        <p className="mt-1 text-sm text-slate-500">{description}</p>
-      )}
     </div>
   );
 }
@@ -146,34 +158,29 @@ function EmptyTable({
 function formatReportDate(date: string) {
   if (!date) return "Not specified";
 
-  const parsed = new Date(`${date.slice(0, 10)}T00:00:00`);
+  const parts = date.slice(0, 10).split("-").map(Number);
 
-  if (Number.isNaN(parsed.getTime())) return date;
+  if (
+    parts.length !== 3 ||
+    parts.some((part) => !Number.isInteger(part) || part <= 0)
+  ) {
+    return date;
+  }
 
-  return parsed.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  try {
+    const ethiopian = toEC(parts[0], parts[1], parts[2]);
+
+    return [
+      ethiopian.year,
+      String(ethiopian.month).padStart(2, "0"),
+      String(ethiopian.day).padStart(2, "0"),
+    ].join("/");
+  } catch {
+    return date;
+  }
 }
 
-const emptySummary: ReportSummary = {
-  totalFiles: 0,
-  incomingFiles: 0,
-  outgoingFiles: 0,
-  pendingFiles: 0,
-  approvedFiles: 0,
-  archivedFiles: 0,
-};
-type ReportType =
-  | "Complete"
-  | "Files"
-  | "Employees"
-  | "Jobs"
-  | "Transfers"
-  | "Letters";
-
-  function convertEthiopianToGregorian(date: string): string {
+function convertEthiopianToGregorian(date: string): string {
   const parts = date.split("/").map(Number);
 
   if (
@@ -184,7 +191,6 @@ type ReportType =
   }
 
   const [year, month, day] = parts;
-
   const gregorian = toGC(year, month, day);
 
   return [
@@ -194,37 +200,152 @@ type ReportType =
   ].join("-");
 }
 
-export default function Reports({ employees, files }: Props) {
+export default function Reports({
+  employees,
+  files,
+  departmentStructure,
+}: Props) {
   const [refreshKey, setRefreshKey] = useState(0);
-  const [reportType, setReportType] = useState<ReportType>("Complete");
 
-  const isReportVisible = (type: ReportType) =>
-    reportType === "Complete" || reportType === type;
-  // Dates selected by the user in the Ethiopian calendar.
-const [fromDate, setFromDate] = useState("");
-const [toDate, setToDate] = useState("");
+  const [reportType, setReportType] =
+    useState<ReportType>("Complete");
 
-// Converted Gregorian dates used by the backend and file filtering.
-const [appliedFrom, setAppliedFrom] = useState("");
-const [appliedTo, setAppliedTo] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
-// Keep the original Ethiopian dates for the printed report.
-const [appliedFromEth, setAppliedFromEth] = useState("");
-const [appliedToEth, setAppliedToEth] = useState("");
+  const [appliedFrom, setAppliedFrom] = useState("");
+  const [appliedTo, setAppliedTo] = useState("");
+
+  const [appliedFromEth, setAppliedFromEth] = useState("");
+  const [appliedToEth, setAppliedToEth] = useState("");
 
   const [dateError, setDateError] = useState("");
-  const [selectedReportBranch, setSelectedReportBranch] = useState("All");
 
-  const [summary, setSummary] = useState<ReportSummary>(emptySummary);
+  // Cascading Sector -> Department -> Work Process filters.
+  const [selectedSector, setSelectedSector] = useState("All");
+  const [selectedDepartment, setSelectedDepartment] =
+    useState("All");
+  const [selectedWorkProcess, setSelectedWorkProcess] =
+    useState("All");
+
+  const [summary, setSummary] =
+    useState<ReportSummary>(emptySummary);
+
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState("");
   const [generatedDate, setGeneratedDate] = useState("");
 
+  const isReportVisible = (type: ReportType) =>
+    reportType === "Complete" || reportType === type;
+
+  // Map department and work-process codes to their sector.
+  const sectorByDepartmentCode = useMemo(() => {
+    const mapping = new Map<string, string>();
+
+    Object.entries(departmentStructure).forEach(
+      ([sectorCode, sector]) => {
+        mapping.set(sectorCode, sectorCode);
+
+        Object.entries(sector.departments).forEach(
+          ([departmentCode, department]) => {
+            mapping.set(departmentCode, sectorCode);
+
+            Object.keys(department.workProcesses).forEach(
+              (workProcessCode) => {
+                mapping.set(workProcessCode, sectorCode);
+              }
+            );
+          }
+        );
+      }
+    );
+
+    return mapping;
+  }, [departmentStructure]);
+
+  // Map work-process codes to their parent department.
+  const departmentByWorkProcessCode = useMemo(() => {
+    const mapping = new Map<string, string>();
+
+    Object.values(departmentStructure).forEach((sector) => {
+      Object.entries(sector.departments).forEach(
+        ([departmentCode, department]) => {
+          Object.keys(department.workProcesses).forEach(
+            (workProcessCode) => {
+              mapping.set(workProcessCode, departmentCode);
+            }
+          );
+        }
+      );
+    });
+
+    return mapping;
+  }, [departmentStructure]);
+
+  const selectedSectorLabel =
+    selectedSector === "All"
+      ? "All Sectors"
+      : departmentStructure[selectedSector]?.label ??
+        selectedSector;
+
+  // Departments belonging to the selected sector.
+  const departmentOptions = useMemo(() => {
+    return Object.entries(departmentStructure).flatMap(
+      ([sectorCode, sector]) => {
+        if (
+          selectedSector !== "All" &&
+          selectedSector !== sectorCode
+        ) {
+          return [];
+        }
+
+        return Object.entries(sector.departments).map(
+          ([code, department]) => ({
+            code,
+            label: department.label,
+          })
+        );
+      }
+    );
+  }, [departmentStructure, selectedSector]);
+
+  // Work processes belonging to the selected department.
+  const workProcessOptions = useMemo(() => {
+    if (selectedDepartment === "All") return [];
+
+    for (const sector of Object.values(departmentStructure)) {
+      const department =
+        sector.departments[selectedDepartment];
+
+      if (department) {
+        return Object.entries(department.workProcesses).map(
+          ([code, label]) => ({
+            code,
+            label,
+          })
+        );
+      }
+    }
+
+    return [];
+  }, [departmentStructure, selectedDepartment]);
+
   useEffect(() => {
-    setGeneratedDate(new Date().toLocaleDateString("en-GB"));
+    const today = new Date();
+
+    setGeneratedDate(
+      formatReportDate(
+        [
+          today.getFullYear(),
+          String(today.getMonth() + 1).padStart(2, "0"),
+          String(today.getDate()).padStart(2, "0"),
+        ].join("-")
+      )
+    );
   }, []);
 
-  // Load the real file summary from the Spring Boot backend.
+  // Load backend file summary.
+  // Backend credentials keep branch users restricted to their branch.
   useEffect(() => {
     let cancelled = false;
 
@@ -235,14 +356,20 @@ const [appliedToEth, setAppliedToEth] = useState("");
       try {
         const params = new URLSearchParams();
 
-        if (appliedFrom) params.set("startDate", appliedFrom);
-        if (appliedTo) params.set("endDate", appliedTo);
+        if (appliedFrom) {
+          params.set("startDate", appliedFrom);
+        }
 
-        if (selectedReportBranch !== "All") {
-          params.set("department", selectedReportBranch);
+        if (appliedTo) {
+          params.set("endDate", appliedTo);
+        }
+
+        if (selectedSector !== "All") {
+          params.set("sector", selectedSector);
         }
 
         const query = params.toString();
+
         const url = `http://localhost:8081/api/reports/summary${
           query ? `?${query}` : ""
         }`;
@@ -252,7 +379,9 @@ const [appliedToEth, setAppliedToEth] = useState("");
         });
 
         if (!response.ok) {
-          throw new Error(`Failed to load report (${response.status})`);
+          throw new Error(
+            `Failed to load report (${response.status})`
+          );
         }
 
         const data: ReportSummary = await response.json();
@@ -280,9 +409,9 @@ const [appliedToEth, setAppliedToEth] = useState("");
     return () => {
       cancelled = true;
     };
-  }, [appliedFrom, appliedTo, selectedReportBranch, refreshKey]);
+  }, [appliedFrom, appliedTo, selectedSector, refreshKey]);
 
-  // Calculate employee and file information for the selected date range.
+  // Calculate branch-loaded employee and file information.
   const report = useMemo(() => {
     const active = employees.filter(
       (employee) => employee.status === "Active"
@@ -293,10 +422,37 @@ const [appliedToEth, setAppliedToEth] = useState("");
     );
 
     const filteredFiles = files.filter((file) => {
+      const departmentCode =
+        file.department?.trim() ?? "";
+
+      const fileSector =
+        sectorByDepartmentCode.get(departmentCode) ?? "";
+
       if (
-        selectedReportBranch !== "All" &&
-        file.department?.trim().toLowerCase() !==
-          selectedReportBranch.trim().toLowerCase()
+        selectedSector !== "All" &&
+        fileSector !== selectedSector
+      ) {
+        return false;
+      }
+
+      const fileDepartment =
+        departmentByWorkProcessCode.get(departmentCode) ??
+        (departmentStructure[selectedSector]?.departments[
+          departmentCode
+        ]
+          ? departmentCode
+          : "");
+
+      if (
+        selectedDepartment !== "All" &&
+        fileDepartment !== selectedDepartment
+      ) {
+        return false;
+      }
+
+      if (
+        selectedWorkProcess !== "All" &&
+        departmentCode !== selectedWorkProcess
       ) {
         return false;
       }
@@ -317,29 +473,75 @@ const [appliedToEth, setAppliedToEth] = useState("");
       active,
       inactive,
       files: filteredFiles,
+
       pending: filteredFiles.filter(
         (file) => file.status === "Pending"
       ).length,
+
       approved: filteredFiles.filter(
         (file) => file.status === "Approved"
       ).length,
+
       archived: filteredFiles.filter(
         (file) => file.status === "Archived"
       ).length,
+
       incoming: filteredFiles.filter(
         (file) => file.fileType === "Incoming"
       ).length,
+
       outgoing: filteredFiles.filter(
         (file) => file.fileType === "Outgoing"
       ).length,
+
       totalPages: filteredFiles.reduce(
         (total, file) => total + (file.pages ?? 0),
         0
       ),
     };
-  }, [employees, files, appliedFrom, appliedTo, selectedReportBranch]);
+  }, [
+    employees,
+    files,
+    appliedFrom,
+    appliedTo,
+    selectedSector,
+    selectedDepartment,
+    selectedWorkProcess,
+    sectorByDepartmentCode,
+    departmentByWorkProcessCode,
+    departmentStructure,
+  ]);
 
-  // Calculate actual gender statistics from employee records.
+
+ // Use filtered file records whenever a sector,
+// department, or work process is selected.
+const displaySummary = useMemo<ReportSummary>(() => {
+  const useBackendSummary =
+    selectedSector === "All" &&
+    selectedDepartment === "All" &&
+    selectedWorkProcess === "All";
+
+  if (useBackendSummary && !summaryError) {
+    return summary;
+  }
+
+  return {
+    totalFiles: report.files.length,
+    incomingFiles: report.incoming,
+    outgoingFiles: report.outgoing,
+    pendingFiles: report.pending,
+    approvedFiles: report.approved,
+    archivedFiles: report.archived,
+  };
+}, [
+  summary,
+  summaryError,
+  selectedSector,
+  selectedDepartment,
+  selectedWorkProcess,
+  report,
+]);
+  // Employee gender statistics.
   const genderStats = useMemo(() => {
     const countGender = (
       list: Employee[],
@@ -347,7 +549,8 @@ const [appliedToEth, setAppliedToEth] = useState("");
     ) =>
       list.filter(
         (employee) =>
-          employee.gender?.trim().toLowerCase() === gender.toLowerCase()
+          employee.gender?.trim().toLowerCase() ===
+          gender.toLowerCase()
       ).length;
 
     const recorded = employees.filter((employee) =>
@@ -359,16 +562,18 @@ const [appliedToEth, setAppliedToEth] = useState("");
     return {
       recorded,
       notRecorded: employees.length - recorded,
+
       activeMale: countGender(report.active, "Male"),
       activeFemale: countGender(report.active, "Female"),
       activeOther: countGender(report.active, "Other"),
+
       inactiveMale: countGender(report.inactive, "Male"),
       inactiveFemale: countGender(report.inactive, "Female"),
       inactiveOther: countGender(report.inactive, "Other"),
     };
   }, [employees, report.active, report.inactive]);
 
-  // Calculate inactive employee reasons when available.
+  // Inactive employee reasons.
   const inactiveReasonStats = useMemo(() => {
     const countReason = (
       reason: "Retired" | "Resigned" | "Deceased" | "Transferred"
@@ -387,85 +592,384 @@ const [appliedToEth, setAppliedToEth] = useState("");
     };
   }, [report.inactive]);
 
-function generateReport() {
-  if (Boolean(fromDate) !== Boolean(toDate)) {
-    setDateError(
-      "Please select both a From date and a To date, or clear both dates."
-    );
-    return;
-  }
-
-  try {
-    const gregorianFrom = fromDate
-      ? convertEthiopianToGregorian(fromDate)
-      : "";
-
-    const gregorianTo = toDate
-      ? convertEthiopianToGregorian(toDate)
-      : "";
-
-    if (gregorianFrom && gregorianTo && gregorianFrom > gregorianTo) {
-      setDateError(
-        "The From date must be before or equal to the To date."
-      );
-      return;
-    }
-
-    setDateError("");
-
-    // Gregorian dates go to Spring Boot.
-    setAppliedFrom(gregorianFrom);
-    setAppliedTo(gregorianTo);
-
-    // Ethiopian dates are retained for the printed report.
-    setAppliedFromEth(fromDate);
-    setAppliedToEth(toDate);
-  } catch {
-    setDateError("Please select valid Ethiopian calendar dates.");
-  }
-}
-function resetReport() {
-  setFromDate("");
-  setToDate("");
-
-  setAppliedFrom("");
-  setAppliedTo("");
-
-  setAppliedFromEth("");
-  setAppliedToEth("");
-
-  setSelectedReportBranch("All");
-  setReportType("Complete");
-  setDateError("");
-}
-
-  function refreshReport() {
-    setRefreshKey((key) => key + 1);
-  }
-
- function handlePrint() {
-  const needsFileSummary =
-    reportType === "Complete" || reportType === "Files";
-
-  if (needsFileSummary && summaryLoading) return;
-
-  if (needsFileSummary && summaryError) {
-    const confirmed = window.confirm(
-      "The file summary could not be loaded. The report may contain incomplete file statistics. Do you want to continue?"
-    );
-
-    if (!confirmed) return;
-  }
-
-  window.print();
-}
-
   const otherInactiveReasons =
     report.inactive.length -
     inactiveReasonStats.retired -
     inactiveReasonStats.resigned -
     inactiveReasonStats.deceased -
     inactiveReasonStats.transferred;
+
+  function generateReport() {
+    if (Boolean(fromDate) !== Boolean(toDate)) {
+      setDateError(
+        "Please select both a From date and a To date, or clear both dates."
+      );
+      return;
+    }
+
+    try {
+      const gregorianFrom = fromDate
+        ? convertEthiopianToGregorian(fromDate)
+        : "";
+
+      const gregorianTo = toDate
+        ? convertEthiopianToGregorian(toDate)
+        : "";
+
+      if (
+        gregorianFrom &&
+        gregorianTo &&
+        gregorianFrom > gregorianTo
+      ) {
+        setDateError(
+          "The From date must be before or equal to the To date."
+        );
+        return;
+      }
+
+      setDateError("");
+
+      setAppliedFrom(gregorianFrom);
+      setAppliedTo(gregorianTo);
+
+      setAppliedFromEth(fromDate);
+      setAppliedToEth(toDate);
+    } catch {
+      setDateError(
+        "Please select valid Ethiopian calendar dates."
+      );
+    }
+  }
+
+  function resetReport() {
+    setFromDate("");
+    setToDate("");
+
+    setAppliedFrom("");
+    setAppliedTo("");
+
+    setAppliedFromEth("");
+    setAppliedToEth("");
+
+    setSelectedSector("All");
+    setSelectedDepartment("All");
+    setSelectedWorkProcess("All");
+
+    setReportType("Complete");
+    setDateError("");
+  }
+
+  function refreshReport() {
+    setRefreshKey((key) => key + 1);
+  }
+
+  // Export only the selected report sections.
+  async function exportToExcel() {
+    try {
+      const XLSX = await import("xlsx");
+
+      const workbook = XLSX.utils.book_new();
+
+      const includeComplete = reportType === "Complete";
+      const includeFiles =
+        includeComplete || reportType === "Files";
+      const includeEmployees =
+        includeComplete || reportType === "Employees";
+      const includeJobs =
+        includeComplete || reportType === "Jobs";
+      const includeTransfers =
+        includeComplete || reportType === "Transfers";
+      const includeLetters =
+        includeComplete || reportType === "Letters";
+
+      const reportTitle = includeComplete
+        ? "Complete Management Report"
+        : `${reportType} Report`;
+
+      // Report information.
+      const reportInfo = [
+        ["ETHIOPIAN CUSTOMS COMMISSION"],
+        [reportTitle],
+        [],
+        ["Report Information", "Value"],
+        ["Sector", selectedSectorLabel],
+        [
+          "Department",
+          selectedDepartment === "All"
+            ? "All Departments"
+            : departmentOptions.find(
+                (item) => item.code === selectedDepartment
+              )?.label ?? selectedDepartment,
+        ],
+        [
+          "Work Process",
+          selectedWorkProcess === "All"
+            ? "All Work Processes"
+            : workProcessOptions.find(
+                (item) => item.code === selectedWorkProcess
+              )?.label ?? selectedWorkProcess,
+        ],
+        ["From Date (Ethiopian)", appliedFromEth || "All dates"],
+        ["To Date (Ethiopian)", appliedToEth || "All dates"],
+        ["Generated On (Ethiopian)", generatedDate],
+      ];
+
+      if (includeFiles) {
+        reportInfo.push(
+          [],
+          ["File Statistics", "Count"],
+         ["Total Files", String(report.files.length)],
+          ["Incoming Files", String(report.incoming)],
+          ["Outgoing Files", String(report.outgoing)],
+          ["Pending Files", String(report.pending)],
+          ["Approved Files", String(report.approved)],
+          ["Archived Files", String(report.archived)],
+          ["Total Recorded Pages", String(report.totalPages)]
+        );
+      }
+
+      if (includeEmployees) {
+        reportInfo.push(
+          [],
+          ["Employee Statistics", "Count"],
+          ["Total Employees", String(employees.length)],
+          ["Active Employees", String(report.active.length)],
+          ["Inactive Employees", String(report.inactive.length)]
+        );
+      }
+
+      const infoSheet = XLSX.utils.aoa_to_sheet(reportInfo);
+
+      infoSheet["!cols"] = [
+        { wch: 35 },
+        { wch: 40 },
+      ];
+
+      XLSX.utils.book_append_sheet(
+        workbook,
+        infoSheet,
+        "Report Information"
+      );
+
+      // FILE ACTIVITY AND FILE REGISTER.
+      if (includeFiles) {
+        const activityRows = [
+          ["FILE ACTIVITY SUMMARY"],
+          [],
+          ["Category", "Count"],
+          ["Total Files", report.files.length],
+          ["Incoming", report.incoming],
+          ["Outgoing", report.outgoing],
+          ["Pending", report.pending],
+          ["Approved", report.approved],
+          ["Archived", report.archived],
+          ["Total Recorded Pages", report.totalPages],
+        ];
+
+        const activitySheet =
+          XLSX.utils.aoa_to_sheet(activityRows);
+
+        XLSX.utils.book_append_sheet(
+          workbook,
+          activitySheet,
+          "File Activity"
+        );
+
+        const fileRows = report.files.map(
+          (file, index) => ({
+            No: index + 1,
+            Reference: file.reference || "",
+            Title: file.title || "",
+            Sector:
+              departmentStructure[
+                sectorByDepartmentCode.get(
+                  file.department?.trim() ?? ""
+                ) ?? ""
+              ]?.label ?? "",
+            Department: file.department || "",
+            AssignedOfficer: file.assignedOfficer || "",
+            Pages: file.pages ?? 0,
+            RegistrationDateEthiopian:
+              formatReportDate(file.date),
+            FileType: file.fileType || "",
+            Status: file.status || "",
+          })
+        );
+
+        const fileSheet =
+          XLSX.utils.json_to_sheet(fileRows);
+
+        fileSheet["!cols"] = [
+          { wch: 8 },
+          { wch: 20 },
+          { wch: 35 },
+          { wch: 30 },
+          { wch: 20 },
+          { wch: 25 },
+          { wch: 10 },
+          { wch: 24 },
+          { wch: 15 },
+          { wch: 15 },
+        ];
+
+        XLSX.utils.book_append_sheet(
+          workbook,
+          fileSheet,
+          "File Register"
+        );
+      }
+
+      // EMPLOYEE REPORT.
+      if (includeEmployees) {
+        const employeeRows = employees.map(
+          (employee, index) => ({
+            No: index + 1,
+            Employee: employee.fullName || "",
+            Gender: employee.gender || "",
+            Status: employee.status || "",
+            InactiveReason: employee.inactiveReason || "",
+          })
+        );
+
+        const employeeSheet =
+          XLSX.utils.json_to_sheet(employeeRows);
+
+        XLSX.utils.book_append_sheet(
+          workbook,
+          employeeSheet,
+          "Employees"
+        );
+
+        const genderRows = [
+          ["Employee Category", "Male", "Female", "Other", "Not Recorded", "Total"],
+          [
+            "Active",
+            genderStats.activeMale,
+            genderStats.activeFemale,
+            genderStats.activeOther,
+            report.active.length -
+              genderStats.activeMale -
+              genderStats.activeFemale -
+              genderStats.activeOther,
+            report.active.length,
+          ],
+          [
+            "Inactive",
+            genderStats.inactiveMale,
+            genderStats.inactiveFemale,
+            genderStats.inactiveOther,
+            report.inactive.length -
+              genderStats.inactiveMale -
+              genderStats.inactiveFemale -
+              genderStats.inactiveOther,
+            report.inactive.length,
+          ],
+        ];
+
+        XLSX.utils.book_append_sheet(
+          workbook,
+          XLSX.utils.aoa_to_sheet(genderRows),
+          "Gender Statistics"
+        );
+
+        const reasonRows = [
+          ["Inactive Reason", "Number of Employees"],
+          ["Retired", inactiveReasonStats.retired],
+          ["Resigned", inactiveReasonStats.resigned],
+          ["Deceased", inactiveReasonStats.deceased],
+          ["Transferred", inactiveReasonStats.transferred],
+          ["Other / Not Recorded", otherInactiveReasons],
+        ];
+
+        XLSX.utils.book_append_sheet(
+          workbook,
+          XLSX.utils.aoa_to_sheet(reasonRows),
+          "Inactive Reasons"
+        );
+      }
+
+      // JOB REPORT.
+      if (includeJobs) {
+        const jobRows = [
+          ["Job Activity"],
+          ["Data", "Status"],
+          ["Job records", "Not connected yet"],
+          ["Total quantity", "Unavailable"],
+        ];
+
+        XLSX.utils.book_append_sheet(
+          workbook,
+          XLSX.utils.aoa_to_sheet(jobRows),
+          "Job Activity"
+        );
+      }
+
+      // TRANSFER REPORT.
+      if (includeTransfers) {
+        const transferRows = [
+          ["Transfer Activity"],
+          ["Data", "Status"],
+          ["Total transfers", "Not connected yet"],
+          ["Received", "Unavailable"],
+          ["Sent", "Unavailable"],
+          ["Pages transferred", "Unavailable"],
+        ];
+
+        XLSX.utils.book_append_sheet(
+          workbook,
+          XLSX.utils.aoa_to_sheet(transferRows),
+          "Transfer Activity"
+        );
+      }
+
+      // LETTER REPORT.
+      if (includeLetters) {
+        const letterRows = [
+          ["Letter Activity"],
+          ["Data", "Status"],
+          ["Total letters", "Not connected yet"],
+          ["Incoming", "Unavailable"],
+          ["Outgoing", "Unavailable"],
+          ["Email", "Unavailable"],
+          ["Hand Delivered", "Unavailable"],
+        ];
+
+        XLSX.utils.book_append_sheet(
+          workbook,
+          XLSX.utils.aoa_to_sheet(letterRows),
+          "Letter Activity"
+        );
+      }
+
+      const fileName =
+        `ECC_${reportType}_Report_${generatedDate.replaceAll("/", "-")}.xlsx`;
+
+      XLSX.writeFile(workbook, fileName);
+    } catch (error) {
+      console.error("Excel export failed:", error);
+
+      window.alert(
+        "Could not export the Excel report. Please try again."
+      );
+    }
+  }
+
+  function handlePrint() {
+    const needsFileSummary =
+      reportType === "Complete" || reportType === "Files";
+
+    if (needsFileSummary && summaryLoading) return;
+
+    if (needsFileSummary && summaryError) {
+      const confirmed = window.confirm(
+        "The file summary could not be loaded. The report may contain incomplete file statistics. Do you want to continue?"
+      );
+
+      if (!confirmed) return;
+    }
+
+    window.print();
+  }
 
   return (
     <>
@@ -521,17 +1025,10 @@ function resetReport() {
             margin-bottom: 12px !important;
           }
 
-          .print-logo-placeholder {
-            display: flex !important;
+          .report-logo {
             width: 65px !important;
             height: 65px !important;
-            align-items: center !important;
-            justify-content: center !important;
-            border: 2px solid #092c45 !important;
-            border-radius: 50% !important;
-            color: #092c45 !important;
-            font-size: 18px !important;
-            font-weight: 800 !important;
+            object-fit: contain !important;
           }
 
           .print-heading {
@@ -543,7 +1040,6 @@ function resetReport() {
             color: #092c45 !important;
             font-size: 19px !important;
             font-weight: 800 !important;
-            letter-spacing: 0.5px !important;
           }
 
           .print-heading h2 {
@@ -705,34 +1201,48 @@ function resetReport() {
         }
       `}</style>
 
-      {/* =========================================
-          SCREEN REPORT DASHBOARD
-      ========================================= */}
+      {/* REPORT DASHBOARD */}
       <div className="reports-screen space-y-8">
+
         {/* Page header */}
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold text-[#092c45]">
               Reports &amp; Analytics
             </h2>
+
             <p className="mt-1 text-sm text-slate-500">
-              Office activity, employee statistics, files, jobs, transfers,
-              and letters.
+              Office activity, employee statistics, files, jobs,
+              transfers, and letters.
             </p>
           </div>
+        </div>
+
+        {/* Export and print buttons - only one print button */}
+        <div className="no-print flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={exportToExcel}
+            className="rounded-lg border border-[#4B8B45] px-4 py-2 text-sm font-semibold text-[#4B8B45] hover:bg-green-50"
+          >
+            Export Excel
+          </button>
 
           <button
             type="button"
             onClick={handlePrint}
-          disabled={
-  summaryLoading && (reportType === "Complete" || reportType === "Files")
-}
-            className="no-print rounded-lg bg-[#092c45] px-4 py-2 text-sm font-semibold text-white hover:bg-[#124766] disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={
+              summaryLoading &&
+              (reportType === "Complete" ||
+                reportType === "Files")
+            }
+            className="rounded-lg bg-[#092c45] px-4 py-2 text-sm font-semibold text-white hover:bg-[#124766] disabled:cursor-not-allowed disabled:opacity-50"
           >
-        {summaryLoading &&
-(reportType === "Complete" || reportType === "Files")
-  ? "Loading report..."
-  : "Print Official Report"}
+            {summaryLoading &&
+            (reportType === "Complete" ||
+              reportType === "Files")
+              ? "Loading report..."
+              : "Print Official Report"}
           </button>
         </div>
 
@@ -743,66 +1253,120 @@ function resetReport() {
           </h3>
 
           <p className="mb-4 text-sm text-slate-500">
-            Choose a date range to filter the reports. Dates currently use the
-            browser&apos;s Gregorian calendar.
+            Choose an Ethiopian date range, sector, department,
+            and work process to filter the reports.
           </p>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
-            <label className="text-sm font-medium text-slate-700">
-  Report Type
-  <select
-    value={reportType}
-    onChange={(event) =>
-      setReportType(event.target.value as ReportType)
-    }
-    className="mt-2 block w-full rounded-lg border border-slate-300 bg-white p-2.5"
-  >
-    <option value="Complete">Complete Report</option>
-    <option value="Files">File Report</option>
-    <option value="Employees">Employee Report</option>
-    <option value="Jobs">Job Report</option>
-    <option value="Transfers">Transfer Report</option>
-    <option value="Letters">Letter Report</option>
-  </select>
-</label>
-            <EthiopianDatePicker
-  label="From"
-  value={fromDate}
-  onChange={setFromDate}
-/>
-
-<EthiopianDatePicker
-  label="To"
-  value={toDate}
-  onChange={setToDate}
-/>
 
             <label className="text-sm font-medium text-slate-700">
-              Branch / Department
+              Report Type
+
               <select
-                value={selectedReportBranch}
+                value={reportType}
                 onChange={(event) =>
-                  setSelectedReportBranch(event.target.value)
+                  setReportType(
+                    event.target.value as ReportType
+                  )
                 }
                 className="mt-2 block w-full rounded-lg border border-slate-300 bg-white p-2.5"
               >
-                <option value="All">All branches</option>
-                {[
-                  ...new Set(
-                    files
-                      .map((file) => file.department?.trim())
-                      .filter(
-                        (department): department is string =>
-                          Boolean(department)
-                      )
-                  ),
-                ]
-                  .sort((a, b) => a.localeCompare(b))
-                  .map((department) => (
-                    <option key={department} value={department}>
-                      {department}
+                <option value="Complete">Complete Report</option>
+                <option value="Files">File Report</option>
+                <option value="Employees">Employee Report</option>
+                <option value="Jobs">Job Report</option>
+                <option value="Transfers">Transfer Report</option>
+                <option value="Letters">Letter Report</option>
+              </select>
+            </label>
+
+            <EthiopianDatePicker
+              label="From"
+              value={fromDate}
+              onChange={setFromDate}
+            />
+
+            <EthiopianDatePicker
+              label="To"
+              value={toDate}
+              onChange={setToDate}
+            />
+
+            {/* Sector */}
+            <label className="text-sm font-medium text-slate-700">
+              Sector
+
+              <select
+                value={selectedSector}
+                onChange={(event) => {
+                  setSelectedSector(event.target.value);
+                  setSelectedDepartment("All");
+                  setSelectedWorkProcess("All");
+                }}
+                className="mt-2 block w-full rounded-lg border border-slate-300 bg-white p-2.5"
+              >
+                <option value="All">All Sectors</option>
+
+                {Object.entries(departmentStructure).map(
+                  ([sectorCode, sector]) => (
+                    <option
+                      key={sectorCode}
+                      value={sectorCode}
+                    >
+                      {sector.label}
                     </option>
-                  ))}
+                  )
+                )}
+              </select>
+            </label>
+
+            {/* Department */}
+            <label className="text-sm font-medium text-slate-700">
+              Department
+
+              <select
+                value={selectedDepartment}
+                onChange={(event) => {
+                  setSelectedDepartment(event.target.value);
+                  setSelectedWorkProcess("All");
+                }}
+                className="mt-2 block w-full rounded-lg border border-slate-300 bg-white p-2.5"
+              >
+                <option value="All">All Departments</option>
+
+                {departmentOptions.map((department) => (
+                  <option
+                    key={department.code}
+                    value={department.code}
+                  >
+                    {department.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {/* Work Process */}
+            <label className="text-sm font-medium text-slate-700">
+              Work Process
+
+              <select
+                value={selectedWorkProcess}
+                onChange={(event) =>
+                  setSelectedWorkProcess(event.target.value)
+                }
+                disabled={selectedDepartment === "All"}
+                className="mt-2 block w-full rounded-lg border border-slate-300 bg-white p-2.5 disabled:bg-slate-100"
+              >
+                <option value="All">All Work Processes</option>
+
+                {workProcessOptions.map((process) => (
+                  <option
+                    key={process.code}
+                    value={process.code}
+                  >
+                    {process.label}
+                  </option>
+                ))}
               </select>
             </label>
 
@@ -834,7 +1398,9 @@ function resetReport() {
           </div>
 
           {dateError && (
-            <p className="mt-3 text-sm text-red-600">{dateError}</p>
+            <p className="mt-3 text-sm text-red-600">
+              {dateError}
+            </p>
           )}
 
           {summaryLoading && (
@@ -844,16 +1410,20 @@ function resetReport() {
           )}
 
           {summaryError && (
-            <p className="mt-3 text-sm text-red-600">{summaryError}</p>
+            <p className="mt-3 text-sm text-red-600">
+              {summaryError}
+            </p>
           )}
         </section>
 
         {/* User Activity */}
-<section
-  className="space-y-4"
-  style={{ display: reportType === "Complete" ? undefined : "none" }}
->
-
+        <section
+          className="space-y-4"
+          style={{
+            display:
+              reportType === "Complete" ? undefined : "none",
+          }}
+        >
           <EmptyTable
             headers={[
               "Rank",
@@ -869,29 +1439,38 @@ function resetReport() {
           />
 
           <p className="text-xs text-slate-500">
-            User activity requires audit or activity-log data. It is not
-            calculated from file totals.
+            User activity requires audit or activity-log data.
+            It is not calculated from file totals.
           </p>
         </section>
 
-    {/* Gender Distribution */}
-<section
-  className="space-y-4"
-  style={{ display: isReportVisible("Employees") ? undefined : "none" }}
->
-
+        {/* Gender Distribution */}
+        <section
+          className="space-y-4"
+          style={{
+            display: isReportVisible("Employees")
+              ? undefined
+              : "none",
+          }}
+        >
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <MetricCard label="Total Employees" value={employees.length} />
+            <MetricCard
+              label="Total Employees"
+              value={employees.length}
+            />
+
             <MetricCard
               label="Active Employees"
               value={report.active.length}
               color="green"
             />
+
             <MetricCard
               label="Inactive Employees"
               value={report.inactive.length}
               color="amber"
             />
+
             <MetricCard
               label="Gender Recorded"
               value={genderStats.recorded}
@@ -962,34 +1541,39 @@ function resetReport() {
           </div>
 
           <p className="text-xs text-slate-500">
-            Gender statistics are calculated from employee records currently
-            loaded by the application. Not recorded includes missing or
-            unrecognized gender values.
+            Gender statistics are calculated from employee records
+            currently loaded by the application.
           </p>
         </section>
 
-     {/* Inactive Employees by Reason */}
-<section
-  className="space-y-4"
-  style={{ display: isReportVisible("Employees") ? undefined : "none" }}
->
-
+        {/* Inactive Employees by Reason */}
+        <section
+          className="space-y-4"
+          style={{
+            display: isReportVisible("Employees")
+              ? undefined
+              : "none",
+          }}
+        >
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <MetricCard
               label="Retired"
               value={inactiveReasonStats.retired}
               color="blue"
             />
+
             <MetricCard
               label="Resigned"
               value={inactiveReasonStats.resigned}
               color="amber"
             />
+
             <MetricCard
               label="Deceased"
               value={inactiveReasonStats.deceased}
               color="red"
             />
+
             <MetricCard
               label="Transferred"
               value={inactiveReasonStats.transferred}
@@ -1039,57 +1623,67 @@ function resetReport() {
                   <span>Retired</span>
                   <strong>{inactiveReasonStats.retired}</strong>
                 </p>
+
                 <p className="flex justify-between">
                   <span>Resigned</span>
                   <strong>{inactiveReasonStats.resigned}</strong>
                 </p>
+
                 <p className="flex justify-between">
                   <span>Deceased</span>
                   <strong>{inactiveReasonStats.deceased}</strong>
                 </p>
+
                 <p className="flex justify-between">
                   <span>Transferred</span>
                   <strong>{inactiveReasonStats.transferred}</strong>
                 </p>
+
                 <p className="flex justify-between border-t pt-3">
                   <span>Total inactive employees</span>
                   <strong>{report.inactive.length}</strong>
                 </p>
               </div>
-
-              <p className="mt-4 text-xs text-slate-500">
-                Counts reflect the inactive-reason values available in the
-                employee records loaded by the application.
-              </p>
             </div>
           </div>
         </section>
 
-       {/* File Activity */}
-<section
-  className="space-y-4"
-  style={{ display: isReportVisible("Files") ? undefined : "none" }}
->
+        {/* File Activity */}
+        <section
+          className="space-y-4"
+          style={{
+            display: isReportVisible("Files")
+              ? undefined
+              : "none",
+          }}
+        >
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            <MetricCard label="Total Files" value={summary.totalFiles} />
+            <MetricCard
+              label="Total Files"
+              value={displaySummary.totalFiles}
+            />
+
             <MetricCard
               label="Incoming"
-              value={summary.incomingFiles}
+              value={displaySummary.incomingFiles}
               color="green"
             />
+
             <MetricCard
               label="Outgoing"
-              value={summary.outgoingFiles}
+              value={displaySummary.outgoingFiles}
               color="red"
             />
+
             <MetricCard
               label="Pending"
-              value={summary.pendingFiles}
+              value={displaySummary.pendingFiles}
               color="amber"
             />
+
             <MetricCard
               label="Approved"
-              value={summary.approvedFiles}
+              value={displaySummary.approvedFiles}
               color="purple"
             />
           </div>
@@ -1100,27 +1694,27 @@ function resetReport() {
               items={[
                 {
                   label: "Incoming",
-                  value: summary.incomingFiles,
+                  value: displaySummary.incomingFiles,
                   color: "bg-green-500",
                 },
                 {
                   label: "Outgoing",
-                  value: summary.outgoingFiles,
+                  value: displaySummary.outgoingFiles,
                   color: "bg-red-500",
                 },
                 {
                   label: "Pending",
-                  value: summary.pendingFiles,
+                  value: displaySummary.pendingFiles,
                   color: "bg-amber-500",
                 },
                 {
                   label: "Approved",
-                  value: summary.approvedFiles,
+                  value: displaySummary.approvedFiles,
                   color: "bg-purple-500",
                 },
                 {
                   label: "Archived",
-                  value: summary.archivedFiles,
+                  value: displaySummary.archivedFiles,
                   color: "bg-slate-500",
                 },
               ]}
@@ -1134,28 +1728,34 @@ function resetReport() {
               <div className="space-y-3 text-sm">
                 <p className="flex justify-between">
                   <span>Total Files</span>
-                  <strong>{summary.totalFiles}</strong>
+                  <strong>{displaySummary.totalFiles}</strong>
                 </p>
+
                 <p className="flex justify-between">
                   <span>Incoming</span>
-                  <strong>{summary.incomingFiles}</strong>
+                  <strong>{displaySummary.incomingFiles}</strong>
                 </p>
+
                 <p className="flex justify-between">
                   <span>Outgoing</span>
-                  <strong>{summary.outgoingFiles}</strong>
+                  <strong>{displaySummary.outgoingFiles}</strong>
                 </p>
+
                 <p className="flex justify-between">
                   <span>Pending</span>
-                  <strong>{summary.pendingFiles}</strong>
+                  <strong>{displaySummary.pendingFiles}</strong>
                 </p>
+
                 <p className="flex justify-between">
                   <span>Approved</span>
-                  <strong>{summary.approvedFiles}</strong>
+                  <strong>{displaySummary.approvedFiles}</strong>
                 </p>
+
                 <p className="flex justify-between">
                   <span>Archived</span>
-                  <strong>{summary.archivedFiles}</strong>
+                  <strong>{displaySummary.archivedFiles}</strong>
                 </p>
+
                 <p className="flex justify-between border-t pt-3">
                   <span>Recorded pages in filtered files</span>
                   <strong>{report.totalPages}</strong>
@@ -1193,23 +1793,48 @@ function resetReport() {
                       colSpan={9}
                       className="px-4 py-8 text-center text-slate-500"
                     >
-                      No files match the selected branch and date range.
+                      No files match the selected branch and filters.
                     </td>
                   </tr>
                 ) : (
                   report.files.map((file, index) => (
-                    <tr key={file.id} className="border-t border-slate-100">
+                    <tr
+                      key={file.id}
+                      className="border-t border-slate-100"
+                    >
                       <td className="px-4 py-3">{index + 1}</td>
-                      <td className="px-4 py-3">{file.reference || "—"}</td>
-                      <td className="px-4 py-3">{file.title || "—"}</td>
-                      <td className="px-4 py-3">{file.department || "—"}</td>
+
+                      <td className="px-4 py-3">
+                        {file.reference || "—"}
+                      </td>
+
+                      <td className="px-4 py-3">
+                        {file.title || "—"}
+                      </td>
+
+                      <td className="px-4 py-3">
+                        {file.department || "—"}
+                      </td>
+
                       <td className="px-4 py-3">
                         {file.assignedOfficer || "—"}
                       </td>
-                      <td className="px-4 py-3">{file.pages ?? 0}</td>
-                      <td className="px-4 py-3">{file.date || "—"}</td>
-                      <td className="px-4 py-3">{file.fileType || "—"}</td>
-                      <td className="px-4 py-3">{file.status || "—"}</td>
+
+                      <td className="px-4 py-3">
+                        {file.pages ?? 0}
+                      </td>
+
+                      <td className="px-4 py-3">
+                        {formatReportDate(file.date)}
+                      </td>
+
+                      <td className="px-4 py-3">
+                        {file.fileType || "—"}
+                      </td>
+
+                      <td className="px-4 py-3">
+                        {file.status || "—"}
+                      </td>
                     </tr>
                   ))
                 )}
@@ -1218,23 +1843,33 @@ function resetReport() {
           </div>
         </section>
 
-      {/* Job Activity */}
-<section
-  className="space-y-4"
-  style={{ display: isReportVisible("Jobs") ? undefined : "none" }}
->
+        {/* Job Activity */}
+        <section
+          className="space-y-4"
+          style={{
+            display: isReportVisible("Jobs")
+              ? undefined
+              : "none",
+          }}
+        >
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <MetricCard label="Total Jobs" value="Unavailable" />
+            <MetricCard
+              label="Total Jobs"
+              value="Unavailable"
+            />
+
             <MetricCard
               label="Total Quantity"
               value="Unavailable"
               color="green"
             />
+
             <MetricCard
               label="Average per Job"
               value="Unavailable"
               color="purple"
             />
+
             <MetricCard
               label="Unique Dates"
               value="Unavailable"
@@ -1243,29 +1878,44 @@ function resetReport() {
           </div>
 
           <EmptyTable
-            headers={["#", "Date (Eth)", "Quantity", "Remarks", "Logged By"]}
+            headers={[
+              "#",
+              "Date (Eth)",
+              "Quantity",
+              "Remarks",
+              "Logged By",
+            ]}
             message="Job data source is not connected yet."
           />
         </section>
 
-       {/* Transfer Activity */}
-<section
-  className="space-y-4"
-  style={{ display: isReportVisible("Transfers") ? undefined : "none" }}
->
-
+        {/* Transfer Activity */}
+        <section
+          className="space-y-4"
+          style={{
+            display: isReportVisible("Transfers")
+              ? undefined
+              : "none",
+          }}
+        >
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <MetricCard label="Total Transfers" value="Unavailable" />
+            <MetricCard
+              label="Total Transfers"
+              value="Unavailable"
+            />
+
             <MetricCard
               label="Received"
               value="Unavailable"
               color="green"
             />
+
             <MetricCard
               label="Sent"
               value="Unavailable"
               color="purple"
             />
+
             <MetricCard
               label="Pages Transferred"
               value="Unavailable"
@@ -1296,26 +1946,21 @@ function resetReport() {
               </h4>
 
               <div className="space-y-3 text-sm">
-                <p className="flex justify-between">
-                  <span>Total transfers</span>
-                  <strong>Unavailable</strong>
-                </p>
-                <p className="flex justify-between">
-                  <span>Received</span>
-                  <strong>Unavailable</strong>
-                </p>
-                <p className="flex justify-between">
-                  <span>Sent</span>
-                  <strong>Unavailable</strong>
-                </p>
-                <p className="flex justify-between">
-                  <span>Pages received</span>
-                  <strong>Unavailable</strong>
-                </p>
-                <p className="flex justify-between">
-                  <span>Pages sent</span>
-                  <strong>Unavailable</strong>
-                </p>
+                {[
+                  "Total transfers",
+                  "Received",
+                  "Sent",
+                  "Pages received",
+                  "Pages sent",
+                ].map((label) => (
+                  <p
+                    key={label}
+                    className="flex justify-between"
+                  >
+                    <span>{label}</span>
+                    <strong>Unavailable</strong>
+                  </p>
+                ))}
               </div>
             </div>
           </div>
@@ -1333,29 +1978,39 @@ function resetReport() {
           />
         </section>
 
-       {/* Letter Activity */}
-<section
-  className="space-y-4"
-  style={{ display: isReportVisible("Letters") ? undefined : "none" }}
->
-
+        {/* Letter Activity */}
+        <section
+          className="space-y-4"
+          style={{
+            display: isReportVisible("Letters")
+              ? undefined
+              : "none",
+          }}
+        >
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            <MetricCard label="Total Letters" value="Unavailable" />
+            <MetricCard
+              label="Total Letters"
+              value="Unavailable"
+            />
+
             <MetricCard
               label="Incoming"
               value="Unavailable"
               color="green"
             />
+
             <MetricCard
               label="Outgoing"
               value="Unavailable"
               color="blue"
             />
+
             <MetricCard
               label="Email"
               value="Unavailable"
               color="purple"
             />
+
             <MetricCard
               label="Hand Delivered"
               value="Unavailable"
@@ -1396,26 +2051,21 @@ function resetReport() {
               </h4>
 
               <div className="space-y-3 text-sm">
-                <p className="flex justify-between">
-                  <span>Total letters</span>
-                  <strong>Unavailable</strong>
-                </p>
-                <p className="flex justify-between">
-                  <span>Incoming</span>
-                  <strong>Unavailable</strong>
-                </p>
-                <p className="flex justify-between">
-                  <span>Outgoing</span>
-                  <strong>Unavailable</strong>
-                </p>
-                <p className="flex justify-between">
-                  <span>Email</span>
-                  <strong>Unavailable</strong>
-                </p>
-                <p className="flex justify-between">
-                  <span>Hand delivered</span>
-                  <strong>Unavailable</strong>
-                </p>
+                {[
+                  "Total letters",
+                  "Incoming",
+                  "Outgoing",
+                  "Email",
+                  "Hand delivered",
+                ].map((label) => (
+                  <p
+                    key={label}
+                    className="flex justify-between"
+                  >
+                    <span>{label}</span>
+                    <strong>Unavailable</strong>
+                  </p>
+                ))}
               </div>
             </div>
           </div>
@@ -1435,32 +2085,28 @@ function resetReport() {
           />
         </section>
       </div>
-      {/* =========================================
-          OFFICIAL PRINT REPORT
-          Hidden on screen; visible when printing
-      ========================================= */}
+
+      {/* OFFICIAL PRINT REPORT */}
       <div className="report-print-area">
+
         {/* Official Header */}
         <header className="print-header">
           <img
-  src="/logo.png"
-  alt="Ethiopian Customs Commission Logo"
-  className="report-logo"
-/>
+            src="/logo.png"
+            alt="Ethiopian Customs Commission Logo"
+            className="report-logo"
+          />
 
           <div className="print-heading">
             <h1>ETHIOPIAN CUSTOMS COMMISSION</h1>
-           <h2>
-  {selectedReportBranch === "All"
-    ? "All Branches"
-    : selectedReportBranch}
-</h2>
 
-<p>
-  {reportType === "Complete"
-    ? "COMPLETE MANAGEMENT REPORT"
-    : `${reportType.toUpperCase()} REPORT`}
-</p>
+            <h2>Official Management Report</h2>
+
+            <p>
+              {reportType === "Complete"
+                ? "COMPLETE MANAGEMENT REPORT"
+                : `${reportType.toUpperCase()} REPORT`}
+            </p>
           </div>
 
           <div className="print-document-label">
@@ -1491,36 +2137,41 @@ function resetReport() {
           </div>
 
           <div>
-            <span>Branch / Department</span>
+            <span>Sector</span>
+            <strong>{selectedSectorLabel}</strong>
+          </div>
+
+          <div>
+            <span>Department</span>
             <strong>
-              {selectedReportBranch === "All"
-                ? "All Available Departments"
-                : selectedReportBranch}
+              {selectedDepartment === "All"
+                ? "All Departments"
+                : departmentOptions.find(
+                    (item) => item.code === selectedDepartment
+                  )?.label ?? selectedDepartment}
+            </strong>
+          </div>
+
+          <div>
+            <span>Work Process</span>
+            <strong>
+              {selectedWorkProcess === "All"
+                ? "All Work Processes"
+                : workProcessOptions.find(
+                    (item) =>
+                      item.code === selectedWorkProcess
+                  )?.label ?? selectedWorkProcess}
             </strong>
           </div>
 
           <div>
             <span>From Date</span>
-            <strong>
-              {appliedFromEth
-                ? appliedFromEth.replace(
-                    /^(\d{4})\/(\d{2})\/(\d{2})$/,
-                    "$1/$2/$3"
-                  )
-                : "All dates"}
-            </strong>
+            <strong>{appliedFromEth || "All dates"}</strong>
           </div>
 
           <div>
             <span>To Date</span>
-            <strong>
-              {appliedToEth
-                ? appliedToEth.replace(
-                    /^(\d{4})\/(\d{2})\/(\d{2})$/,
-                    "$1/$2/$3"
-                  )
-                : "All dates"}
-            </strong>
+            <strong>{appliedToEth || "All dates"}</strong>
           </div>
 
           <div>
@@ -1558,8 +2209,8 @@ function resetReport() {
               <tbody>
                 <tr>
                   <td colSpan={8}>
-                    User activity data is not currently available. An audit
-                    or activity-log data source is required.
+                    User activity data is not currently available.
+                    An audit or activity-log data source is required.
                   </td>
                 </tr>
               </tbody>
@@ -1616,13 +2267,16 @@ function resetReport() {
                 <tr className="print-total-row">
                   <td>Total Employees</td>
                   <td>
-                    {genderStats.activeMale + genderStats.inactiveMale}
+                    {genderStats.activeMale +
+                      genderStats.inactiveMale}
                   </td>
                   <td>
-                    {genderStats.activeFemale + genderStats.inactiveFemale}
+                    {genderStats.activeFemale +
+                      genderStats.inactiveFemale}
                   </td>
                   <td>
-                    {genderStats.activeOther + genderStats.inactiveOther}
+                    {genderStats.activeOther +
+                      genderStats.inactiveOther}
                   </td>
                   <td>{genderStats.notRecorded}</td>
                   <td>{employees.length}</td>
@@ -1650,22 +2304,27 @@ function resetReport() {
                   <td>Retired</td>
                   <td>{inactiveReasonStats.retired}</td>
                 </tr>
+
                 <tr>
                   <td>Resigned</td>
                   <td>{inactiveReasonStats.resigned}</td>
                 </tr>
+
                 <tr>
                   <td>Deceased</td>
                   <td>{inactiveReasonStats.deceased}</td>
                 </tr>
+
                 <tr>
                   <td>Transferred</td>
                   <td>{inactiveReasonStats.transferred}</td>
                 </tr>
+
                 <tr>
                   <td>Other / Not Recorded</td>
                   <td>{otherInactiveReasons}</td>
                 </tr>
+
                 <tr className="print-total-row">
                   <td>Total Inactive Employees</td>
                   <td>{report.inactive.length}</td>
@@ -1695,12 +2354,12 @@ function resetReport() {
 
               <tbody>
                 <tr>
-                  <td>{summary.totalFiles}</td>
-                  <td>{summary.incomingFiles}</td>
-                  <td>{summary.outgoingFiles}</td>
-                  <td>{summary.pendingFiles}</td>
-                  <td>{summary.approvedFiles}</td>
-                  <td>{summary.archivedFiles}</td>
+                  <td>{displaySummary.totalFiles}</td>
+                  <td>{displaySummary.incomingFiles}</td>
+                  <td>{displaySummary.outgoingFiles}</td>
+                  <td>{displaySummary.pendingFiles}</td>
+                  <td>{displaySummary.approvedFiles}</td>
+                  <td>{displaySummary.archivedFiles}</td>
                   <td>{report.totalPages}</td>
                 </tr>
               </tbody>
@@ -1708,8 +2367,8 @@ function resetReport() {
 
             {summaryError && (
               <p className="print-warning">
-                File summary could not be retrieved from the backend. Some
-                file statistics may be incomplete.
+                File summary could not be retrieved from the backend.
+                Some file statistics may be incomplete.
               </p>
             )}
           </section>
@@ -1739,7 +2398,7 @@ function resetReport() {
                 {report.files.length === 0 ? (
                   <tr>
                     <td colSpan={9}>
-                      No files match the selected branch and date range.
+                      No files match the selected branch and filters.
                     </td>
                   </tr>
                 ) : (
@@ -1761,8 +2420,8 @@ function resetReport() {
             </table>
 
             <p className="print-note">
-              Total records listed: {report.files.length} | Total recorded
-              pages: {report.totalPages}
+              Total records listed: {report.files.length} |
+              Total recorded pages: {report.totalPages}
             </p>
           </section>
         )}
@@ -1785,8 +2444,8 @@ function resetReport() {
               <tbody>
                 <tr>
                   <td colSpan={4}>
-                    Unavailable — job records are not connected to the
-                    reporting source yet.
+                    Unavailable — job records are not connected
+                    to the reporting source yet.
                   </td>
                 </tr>
               </tbody>
@@ -1812,17 +2471,12 @@ function resetReport() {
               <tbody>
                 <tr>
                   <td colSpan={4}>
-                    Unavailable — transfer records are not connected to the
-                    reporting source yet.
+                    Unavailable — transfer records are not connected
+                    to the reporting source yet.
                   </td>
                 </tr>
               </tbody>
             </table>
-
-            <p className="print-note">
-              Detailed transfer statistics and records are not currently
-              available.
-            </p>
           </section>
         )}
 
@@ -1845,8 +2499,8 @@ function resetReport() {
               <tbody>
                 <tr>
                   <td colSpan={5}>
-                    Unavailable — letter records are not connected to the
-                    reporting source yet.
+                    Unavailable — letter records are not connected
+                    to the reporting source yet.
                   </td>
                 </tr>
               </tbody>
@@ -1873,8 +2527,8 @@ function resetReport() {
         </section>
 
         <footer className="print-footer">
-          Ethiopian Customs Commission | Office File Management System |
-          Official Management Report
+          Ethiopian Customs Commission | Office File Management
+          System | Official Management Report
         </footer>
       </div>
     </>
