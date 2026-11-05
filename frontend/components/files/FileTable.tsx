@@ -100,17 +100,12 @@ return files.filter((file) => {
 
 
 
-  const matchesSearch = [
-
-    file.reference,
-
-    file.title,
-
-    file.department,
-
-    volume,
-
-  ].some((value) => (value ?? "").toLowerCase().includes(query));
+ const matchesSearch = [
+  file.reference,
+  file.title,
+  file.remarks,
+  volume,
+].some((value) => (value ?? "").toLowerCase().includes(query));
 
 
 
@@ -891,7 +886,8 @@ function handleImportExcel() {
 
           onChange={(event) => setSearch(event.target.value)}
 
-          placeholder="Search reference, file name, department..."
+        
+          placeholder="Search reference, title, remark..."
 
           aria-label="Search office files"
 
@@ -1067,9 +1063,9 @@ function handleImportExcel() {
 
               <th className="px-5 py-4 font-semibold">Volume</th>
 
-              <th className="px-5 py-4 font-semibold">File Name</th>
+              <th className="px-5 py-4 font-semibold">Title</th>
 
-              <th className="px-5 py-4 font-semibold">Department</th>
+              <th className="px-5 py-4 font-semibold">Remark</th>
 
               <th className="px-5 py-4 font-semibold">Date</th>
 
@@ -1082,7 +1078,6 @@ function handleImportExcel() {
             </tr>
 
           </thead>
-
 
 
 <tbody className="divide-y divide-[#ECEFF2]">
@@ -1100,20 +1095,20 @@ function handleImportExcel() {
       </td>
 
       <td className="px-5 py-4 font-medium text-[#292D32]">
-        {file.title}
+        {file.title || "—"}
       </td>
 
       <td className="px-5 py-4 text-[#737B86]">
-        {file.department}
+        {file.remarks || "—"}
       </td>
 
-   <td className="whitespace-nowrap px-5 py-4 text-[#737B86]">
-  {displayEthiopianDate(file.date)}
-</td>
+      <td className="whitespace-nowrap px-5 py-4 text-[#737B86]">
+        {displayEthiopianDate(file.date)}
+      </td>
 
-<td className="whitespace-nowrap px-5 py-4 text-[#737B86]">
-  {displayEthiopianDate(file.outgoing_date)}
-</td>
+      <td className="whitespace-nowrap px-5 py-4 text-[#737B86]">
+        {displayEthiopianDate(file.outgoing_date)}
+      </td>
 
       <td className="px-5 py-4">
         <span

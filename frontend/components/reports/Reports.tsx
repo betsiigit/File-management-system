@@ -1236,7 +1236,7 @@ const displaySummary = useMemo<ReportSummary>(() => {
               (reportType === "Complete" ||
                 reportType === "Files")
             }
-            className="rounded-lg bg-[#092c45] px-4 py-2 text-sm font-semibold text-white hover:bg-[#124766] disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg bg-[#0A506E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#124766] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {summaryLoading &&
             (reportType === "Complete" ||
@@ -1373,7 +1373,7 @@ const displaySummary = useMemo<ReportSummary>(() => {
             <button
               type="button"
               onClick={generateReport}
-              className="self-end rounded-lg bg-[#092c45] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#124766]"
+              className="self-end rounded-lg bg-[#0A506E] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#124766]"
             >
               Generate
             </button>
