@@ -161,26 +161,20 @@ export default function FileRegistrationForm({
       return;
     }
 
-    if (fileType === "Outgoing" && !outgoing_date) {
-      setError("Please select an outgoing date.");
-      return;
-    }
+  if (!outgoing_date) {
+  setError("Please select an outgoing date.");
+  return;
+}let gregorianDate: string;
+let gregorianOutgoingDate: string;
 
-    let gregorianDate: string;
-    let gregorianOutgoingDate = "";
-
-    try {
-      // Convert Ethiopian dates to Gregorian before sending.
-      gregorianDate = ethiopianToGregorian(date);
-
-      if (fileType === "Outgoing") {
-        gregorianOutgoingDate =
-          ethiopianToGregorian(outgoing_date);
-      }
-    } catch {
-      setError("Please select valid Ethiopian dates.");
-      return;
-    }
+try {
+  // Convert both Ethiopian dates to Gregorian.
+  gregorianDate = ethiopianToGregorian(date);
+  gregorianOutgoingDate = ethiopianToGregorian(outgoing_date);
+} catch {
+  setError("Please select valid Ethiopian dates.");
+  return;
+}
 
     setError("");
 

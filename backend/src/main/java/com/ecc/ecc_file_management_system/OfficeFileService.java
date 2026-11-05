@@ -78,7 +78,13 @@ public class OfficeFileService {
         if (officeFile.getRegistrationDate() == null) {
             throw new IllegalArgumentException(
                     "Registration date is required.");
+
         }
+
+        if (officeFile.getOutgoingDate() == null) {
+    throw new IllegalArgumentException(
+            "Outgoing date is required for both Incoming and Outgoing files.");
+}
 
         if (officeFile.getNumberOfPages() != null
                 && officeFile.getNumberOfPages() < 0) {
