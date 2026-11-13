@@ -33,7 +33,12 @@ type Branch = {
 
 const API_URL = "http://localhost:8081";
 
-
+const registrarSectors = [
+  { code: "4", label: "Commissioner" },
+  { code: "6", label: "Planning Sector" },
+  { code: "7", label: "Legal Enforcement Sector" },
+  { code: "8", label: "Continuous Capacity Building Sector" },
+];
 
 const inputClass =
   "w-full rounded-lg border border-[#D6E2E8] bg-white px-3 py-3 text-sm text-[#292D32] outline-none transition-colors placeholder:text-[#9298A1] focus:border-[#0A506E] focus:ring-2 focus:ring-[#0A506E]/10";
@@ -62,6 +67,7 @@ export default function UserManagement({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<Role>("OFFICER");
+  const [sectorPermissions, setSectorPermissions] = useState<string[]>([]);
 
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
@@ -172,6 +178,11 @@ export default function UserManagement({
       return;
     }
 
+    if (role === "REGISTRAR" && sectorPermissions.length === 0) {
+  setNotice("Please select at least one permitted sector for the Registrar.");
+  return;
+}
+
     if (password.length < 12) {
       setNotice("The password must contain at least 12 characters.");
       return;
@@ -191,6 +202,7 @@ export default function UserManagement({
         password,
         role,
         ...(isSystemAdmin ? { branchId: Number(branchId) } : {}),
+        ...(role === "REGISTRAR" ? { sectorPermissions } : {}),
       };
 
       const response = await fetch(`${API_URL}/api/users`, {
@@ -217,6 +229,7 @@ export default function UserManagement({
       setPassword("");
       setBranchId("");
       setRole("OFFICER");
+      setSectorPermissions([]);
 
       await loadUsers();
     } catch (error) {
@@ -448,6 +461,65 @@ export default function UserManagement({
               </select>
             </div>
           )}
+
+
+{/* Registrar sector permissions */}
+{role === "REGISTRAR" && (
+  <div className="rounded-xl border border-[#D6E2E8] bg-[#F8FAFB] p-4">
+    <div className="mb-3">
+      <h5 className="text-sm font-semibold text-[#292D32]">
+        Permitted Sectors *
+      </h5>
+      <p className="mt-1 text-xs text-[#737B86]">
+        Select the sectors where this Registrar is allowed to register files.
+        They can select multiple sectors.
+      </p>
+    </div>
+
+    <div className="grid gap-3 sm:grid-cols-2">
+      {registrarSectors.map((sector) => {
+        const selected = sectorPermissions.includes(sector.code);
+
+        return (
+          <label
+            key={sector.code}
+            className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors ${
+              selected
+                ? "border-[#0A506E] bg-[#E7F1F5]"
+                : "border-[#D6E2E8] bg-white hover:border-[#0A506E]"
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={(event) => {
+                setSectorPermissions((current) =>
+                  event.target.checked
+                    ? [...current, sector.code]
+                    : current.filter((code) => code !== sector.code)
+                );
+              }}
+              className="h-4 w-4 accent-[#0A506E]"
+            />
+
+            <span className="text-sm font-medium text-[#292D32]">
+              {sector.label}
+            </span>
+
+            <span className="ml-auto text-xs text-[#737B86]">
+              {sector.code}
+            </span>
+          </label>
+        );
+      })}
+    </div>
+
+    <p className="mt-3 text-xs text-[#737B86]">
+      Selected sectors: {sectorPermissions.length}
+    </p>
+  </div>
+)}
+
 
           {/* Branch Admin information */}
           {isBranchAdmin && (
