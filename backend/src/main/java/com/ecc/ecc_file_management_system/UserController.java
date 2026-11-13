@@ -2,9 +2,11 @@
 package com.ecc.ecc_file_management_system;
 
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,15 +27,18 @@ public class UserController {
     private final AppUserRepository appUserRepository;
     private final BranchRepository branchRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserPermissionRepository userPermissionRepository;
 
     public UserController(
             AppUserRepository appUserRepository,
             BranchRepository branchRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            UserPermissionRepository userPermissionRepository) {
 
         this.appUserRepository = appUserRepository;
         this.branchRepository = branchRepository;
         this.passwordEncoder = passwordEncoder;
+        this.userPermissionRepository = userPermissionRepository;
     }
 
     // SYSTEM_ADMIN and BRANCH_ADMIN can view available branches.
@@ -175,6 +180,40 @@ public class UserController {
             return forbidden("You cannot create users.");
         }
 
+        // Validate Registrar sector permissions.
+        Set<String> sectorCodes = new LinkedHashSet<>();
+
+        if ("REGISTRAR".equals(role)) {
+
+            if (request.sectorPermissions() == null
+                    || request.sectorPermissions().isEmpty()) {
+                return badRequest(
+                        "Select at least one permitted sector for the Registrar.");
+            }
+
+            for (String sector : request.sectorPermissions()) {
+
+                if (sector == null
+                        || !sector.trim().matches("\\d+")) {
+                    return badRequest(
+                            "Invalid sector permission. Select valid sector codes.");
+                }
+
+                sectorCodes.add(sector.trim());
+            }
+
+            if (sectorCodes.isEmpty()) {
+                return badRequest(
+                        "Select at least one permitted sector for the Registrar.");
+            }
+
+        } else if (request.sectorPermissions() != null
+                && !request.sectorPermissions().isEmpty()) {
+
+            return badRequest(
+                    "Sector permissions can only be assigned to Registrars.");
+        }
+
         if (appUserRepository.existsByEmailIgnoreCase(email)) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(Map.of(
@@ -222,6 +261,22 @@ public class UserController {
         user.setBranch(branch);
 
         AppUser savedUser = appUserRepository.save(user);
+
+        // Save the selected sector permissions for this Registrar.
+        if ("REGISTRAR".equals(role)) {
+
+            List<UserPermission> permissions = sectorCodes.stream()
+                    .map(sector -> {
+                        UserPermission permission = new UserPermission();
+                        permission.setUser(savedUser);
+                        permission.setPermissionKey("SECTOR_" + sector);
+                        permission.setEnabled(true);
+                        return permission;
+                    })
+                    .toList();
+
+            userPermissionRepository.saveAll(permissions);
+        }
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(toResponse(savedUser));
@@ -280,7 +335,8 @@ public class UserController {
             String email,
             String password,
             String role,
-            Long branchId
+            Long branchId,
+            List<String> sectorPermissions
     ) {}
 
     public record UserResponse(

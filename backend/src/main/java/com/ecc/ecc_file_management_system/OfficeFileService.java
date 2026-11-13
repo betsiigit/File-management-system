@@ -24,16 +24,19 @@ public class OfficeFileService {
     private final OfficeFileRepository officeFileRepository;
     private final CurrentUserService currentUserService;
     private final EntityManager entityManager;
+    private final UserPermissionRepository userPermissionRepository;
 
-    public OfficeFileService(
-            OfficeFileRepository officeFileRepository,
-            CurrentUserService currentUserService,
-            EntityManager entityManager) {
+   public OfficeFileService(
+        OfficeFileRepository officeFileRepository,
+        CurrentUserService currentUserService,
+        EntityManager entityManager,
+        UserPermissionRepository userPermissionRepository) {
 
-        this.officeFileRepository = officeFileRepository;
-        this.currentUserService = currentUserService;
-        this.entityManager = entityManager;
-    }
+    this.officeFileRepository = officeFileRepository;
+    this.currentUserService = currentUserService;
+    this.entityManager = entityManager;
+    this.userPermissionRepository = userPermissionRepository;
+}
 
     // Register a new file with an automatically generated reference.
     public OfficeFile registerFile(OfficeFile officeFile) {
@@ -94,6 +97,25 @@ public class OfficeFileService {
 
         String department = officeFile.getDepartment().trim();
         String volume = officeFile.getVolume().trim();
+
+        requireRegistrarSectorPermission(currentUser, department);
+
+if (isRegistrar(currentUser)) {
+    String assignedOfficer = officeFile.getAssignedOfficer();
+
+    if (assignedOfficer != null
+            && !assignedOfficer.isBlank()
+            && !assignedOfficer.trim().equalsIgnoreCase(
+                    currentUser.getFullName().trim())) {
+
+        throw new AccessDeniedException(
+                "A Registrar can only assign files to themselves.");
+    }
+
+    officeFile.setAssignedOfficer(currentUser.getFullName());
+}
+
+officeFile.setCreatedBy(currentUser);
 
         officeFile.setDepartment(department);
         officeFile.setVolume(volume);
@@ -265,6 +287,9 @@ public class OfficeFileService {
         // This lookup also enforces branch access.
         OfficeFile existingFile = getFileById(id);
 
+        // Registrars can only edit files they registered.
+requireRegistrarOwnership(currentUser, existingFile);
+
         String newReference = updatedFile.getReferenceNumber();
 
         if (newReference == null || newReference.isBlank()) {
@@ -373,4 +398,66 @@ public class OfficeFileService {
 
         return user.getBranch().getId();
     }
+
+private boolean isRegistrar(AppUser user) {
+    return user.getRole() != null
+            && "REGISTRAR".equalsIgnoreCase(user.getRole().trim());
+}
+
+private void requireRegistrarSectorPermission(
+        AppUser user,
+        String department) {
+
+    if (!isRegistrar(user)) {
+        return;
+    }
+
+    if (department == null || department.isBlank()) {
+        throw new AccessDeniedException(
+                "A valid sector and department are required.");
+    }
+
+    String normalizedDepartment = department.trim();
+
+    if (!normalizedDepartment.matches("\\d+(\\.\\d+)*")) {
+        throw new AccessDeniedException(
+                "Invalid sector or department code.");
+    }
+
+    String sectorCode = normalizedDepartment.split("\\.")[0];
+    String requiredPermission = "SECTOR_" + sectorCode;
+
+    boolean allowed = userPermissionRepository
+            .findByUserId(user.getId())
+            .stream()
+            .anyMatch(permission ->
+                    permission.isEnabled()
+                    && requiredPermission.equalsIgnoreCase(
+                            permission.getPermissionKey()));
+
+    if (!allowed) {
+        throw new AccessDeniedException(
+                "You are not permitted to register files in Sector "
+                        + sectorCode + ".");
+    }
+}
+
+private void requireRegistrarOwnership(
+        AppUser user,
+        OfficeFile file) {
+
+    if (!isRegistrar(user)) {
+        return;
+    }
+
+    if (file.getCreatedBy() == null
+            || !file.getCreatedBy().getId().equals(user.getId())) {
+
+        throw new AccessDeniedException(
+                "You can only modify files that you registered.");
+    }
+}
+
+
+
 }

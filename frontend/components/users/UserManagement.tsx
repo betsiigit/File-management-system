@@ -33,6 +33,8 @@ type Branch = {
 
 const API_URL = "http://localhost:8081";
 
+
+
 const inputClass =
   "w-full rounded-lg border border-[#D6E2E8] bg-white px-3 py-3 text-sm text-[#292D32] outline-none transition-colors placeholder:text-[#9298A1] focus:border-[#0A506E] focus:ring-2 focus:ring-[#0A506E]/10";
 
