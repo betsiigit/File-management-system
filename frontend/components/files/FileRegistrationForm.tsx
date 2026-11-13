@@ -1,7 +1,6 @@
 
 "use client";
-
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import EthiopianDatePicker from "@/components/reports/EthiopianDatePicker";
 import { ethiopianToGregorian } from "@/utils/ethiopianDate";
 
@@ -34,13 +33,14 @@ type DepartmentStructure = {
 type FileRegistrationFormProps = {
   departmentStructure: Record<string, DepartmentStructure>;
   officers?: string[];
+  userRole: string;
   onRegister: (file: RegisteredFileData) => void;
   onCancel?: () => void;
 };
-
 export default function FileRegistrationForm({
   departmentStructure,
   officers = [],
+  userRole,
   onRegister,
   onCancel,
 }: FileRegistrationFormProps) {
@@ -63,6 +63,60 @@ export default function FileRegistrationForm({
   const [attachments, setAttachments] = useState<File[]>([]);
   const [error, setError] = useState("");
 
+  const [sectorPermissions, setSectorPermissions] = useState<string[]>([]);
+const [permissionsLoading, setPermissionsLoading] = useState(
+  userRole === "REGISTRAR"
+);
+
+useEffect(() => {
+  if (userRole !== "REGISTRAR") {
+    setSectorPermissions([]);
+    setPermissionsLoading(false);
+    return;
+  }
+
+  let cancelled = false;
+
+  async function loadSectorPermissions() {
+    setPermissionsLoading(true);
+
+    try {
+      const response = await fetch(
+        "http://localhost:8081/api/users/me/sector-permissions",
+        {
+          credentials: "include",
+          cache: "no-store",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Unable to load your permitted sectors.");
+      }
+
+      const permissions: string[] = await response.json();
+
+      if (!cancelled) {
+        setSectorPermissions(permissions);
+      }
+    } catch {
+      if (!cancelled) {
+        setSectorPermissions([]);
+        setError("Unable to load your sector permissions. Please refresh the page.");
+      }
+    } finally {
+      if (!cancelled) {
+        setPermissionsLoading(false);
+      }
+    }
+  }
+
+  void loadSectorPermissions();
+
+  return () => {
+    cancelled = true;
+  };
+}, [userRole]);
+
   const inputClass =
     "mt-2 w-full rounded-lg border border-[#D6E2E8] bg-white px-3 py-3 text-sm text-[#292D32] outline-none transition-colors duration-200 placeholder:text-[#9298A1] focus:border-[#0A506E] focus:ring-2 focus:ring-[#0A506E]/10";
 
@@ -74,7 +128,10 @@ export default function FileRegistrationForm({
   // --------------------------------------------------
 
   // All available sectors.
-  const availableSectors = Object.entries(departmentStructure);
+const availableSectors = Object.entries(departmentStructure).filter(
+  ([code]) =>
+    userRole !== "REGISTRAR" || sectorPermissions.includes(code)
+);
 
   // Departments belonging to the selected sector.
   const availableDepartments = sector
@@ -145,6 +202,18 @@ export default function FileRegistrationForm({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (permissionsLoading) {
+  setError("Please wait while your sector permissions load.");
+  return;
+}
+
+if (
+  userRole === "REGISTRAR" &&
+  (!sector || !sectorPermissions.includes(sector))
+) {
+  setError("You are not permitted to register files in this sector.");
+  return;
+}
 
     if (
       !volume.trim() ||
@@ -362,15 +431,15 @@ try {
               <label className={labelClass}>
                 1. Sector *
               </label>
-
-              <select
-                value={sector}
-                onChange={(e) =>
-                  handleSectorChange(e.target.value)
-                }
-                className={inputClass}
-                required
-              >
+<select
+  value={sector}
+  onChange={(e) =>
+    handleSectorChange(e.target.value)
+  }
+  className={inputClass}
+  required
+  disabled={permissionsLoading}
+>
                 <option value="">Select sector</option>
 
                 {availableSectors.map(([code, item]) => (
@@ -395,6 +464,19 @@ try {
                 className={inputClass}
                 disabled={!sector}
               >
+                {permissionsLoading && (
+  <p className="mt-1 text-xs text-[#737B86]">
+    Loading permitted sectors...
+  </p>
+)}
+
+{!permissionsLoading &&
+  userRole === "REGISTRAR" &&
+  sectorPermissions.length === 0 && (
+    <p className="mt-1 text-xs text-red-600">
+      No permitted sectors are assigned to your account.
+    </p>
+  )}
                 <option value="">Select department</option>
 
                 {availableDepartments.map(([code, item]) => (

@@ -1921,9 +1921,10 @@ async function registerFile(data: RegisteredFileData) {
               activeMenu !== "Reports" && (
                 <>
                   {activeMenu === "Register File" && showForm ? (
-   <FileRegistrationForm
+ <FileRegistrationForm
   departmentStructure={departmentStructure}
   officers={officers}
+  userRole={profile.role}
   onRegister={registerFile}
   onCancel={() => {
     setShowForm(false);

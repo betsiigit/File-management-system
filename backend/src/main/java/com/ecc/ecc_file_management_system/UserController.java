@@ -41,6 +41,31 @@ public class UserController {
         this.userPermissionRepository = userPermissionRepository;
     }
 
+
+
+    // Return the logged-in Registrar's permitted sector codes.
+    @GetMapping("/me/sector-permissions")
+    @PreAuthorize("hasRole('REGISTRAR')")
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<String>> getMySectorPermissions(
+            Authentication authentication) {
+
+        AppUser currentUser = getAuthenticatedUser(authentication);
+
+        List<String> sectors = userPermissionRepository
+                .findByUserId(currentUser.getId())
+                .stream()
+                .filter(UserPermission::isEnabled)
+                .map(UserPermission::getPermissionKey)
+                .filter(key -> key != null && key.matches("SECTOR_\\d+"))
+                .map(key -> key.substring("SECTOR_".length()))
+                .distinct()
+                .toList();
+
+        return ResponseEntity.ok(sectors);
+    }
+
+
     // SYSTEM_ADMIN and BRANCH_ADMIN can view available branches.
     // Branch Admin only sees their own branch.
     @GetMapping("/branches")
