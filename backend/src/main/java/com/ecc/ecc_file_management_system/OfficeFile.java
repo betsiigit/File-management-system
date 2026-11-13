@@ -3,19 +3,18 @@ package com.ecc.ecc_file_management_system;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.PositiveOrZero;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 
 @Entity
 @Table(name = "office_files")
@@ -26,13 +25,13 @@ public class OfficeFile {
     private Long id;
 
     @Column(name = "reference_number", nullable = false, unique = true)
-private String referenceNumber;
+    private String referenceNumber;
 
     @Column(name = "volume")
-private String volume;
+    private String volume;
 
-@Column(name = "status", nullable = false)
-private String status = "Pending";
+    @Column(name = "status", nullable = false)
+    private String status = "Pending";
 
     @NotBlank(message = "File title is required")
     @Column(nullable = false)
@@ -56,7 +55,7 @@ private String status = "Pending";
     private String assignedOfficer;
 
     @Column(name = "outgoing_date")
-private LocalDate outgoingDate;
+    private LocalDate outgoingDate;
 
     @Column(length = 2000)
     private String remarks;
@@ -68,8 +67,13 @@ private LocalDate outgoingDate;
     private LocalDateTime createdAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
-@JoinColumn(name = "branch_id")
-private Branch branch;
+    @JoinColumn(name = "branch_id")
+    private Branch branch;
+
+    // User who originally registered this file.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
+    private AppUser createdBy;
 
     public OfficeFile() {
     }
@@ -86,32 +90,40 @@ private Branch branch;
         return referenceNumber;
     }
 
-    public String getVolume() {
-    return volume;
-}
-
-public void setVolume(String volume) {
-    this.volume = volume;
-}
-
-public String getStatus() {
-    return status;
-}
-
-public Branch getBranch() {
-    return branch;
-}
-
-public void setBranch(Branch branch) {
-    this.branch = branch;
-}
-
-public void setStatus(String status) {
-    this.status = status;
-}
-
     public void setReferenceNumber(String referenceNumber) {
         this.referenceNumber = referenceNumber;
+    }
+
+    public String getVolume() {
+        return volume;
+    }
+
+    public void setVolume(String volume) {
+        this.volume = volume;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public Branch getBranch() {
+        return branch;
+    }
+
+    public void setBranch(Branch branch) {
+        this.branch = branch;
+    }
+
+    public AppUser getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(AppUser createdBy) {
+        this.createdBy = createdBy;
     }
 
     public String getTitle() {
@@ -163,12 +175,12 @@ public void setStatus(String status) {
     }
 
     public LocalDate getOutgoingDate() {
-    return outgoingDate;
-}
+        return outgoingDate;
+    }
 
-public void setOutgoingDate(LocalDate outgoingDate) {
-    this.outgoingDate = outgoingDate;
-}
+    public void setOutgoingDate(LocalDate outgoingDate) {
+        this.outgoingDate = outgoingDate;
+    }
 
     public String getRemarks() {
         return remarks;
