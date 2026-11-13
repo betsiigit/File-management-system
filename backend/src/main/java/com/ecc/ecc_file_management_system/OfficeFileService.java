@@ -290,6 +290,22 @@ officeFile.setCreatedBy(currentUser);
         // Registrars can only edit files they registered.
 requireRegistrarOwnership(currentUser, existingFile);
 
+// Registrars can only assign their files to themselves.
+if (isRegistrar(currentUser)) {
+    String requestedOfficer = updatedFile.getAssignedOfficer();
+
+    if (requestedOfficer != null
+            && !requestedOfficer.isBlank()
+            && !requestedOfficer.trim().equalsIgnoreCase(
+                    currentUser.getFullName().trim())) {
+
+        throw new AccessDeniedException(
+                "Registrars can only assign files to themselves.");
+    }
+
+    updatedFile.setAssignedOfficer(currentUser.getFullName());
+}
+
         String newReference = updatedFile.getReferenceNumber();
 
         if (newReference == null || newReference.isBlank()) {
@@ -329,7 +345,12 @@ requireRegistrarOwnership(currentUser, existingFile);
         existingFile.setOutgoingDate(updatedFile.getOutgoingDate());
         existingFile.setNumberOfPages(
                 updatedFile.getNumberOfPages());
-        existingFile.setDepartment(updatedFile.getDepartment());
+      // Registrars can only keep or change files to their permitted sectors.
+requireRegistrarSectorPermission(
+        currentUser,
+        updatedFile.getDepartment());
+
+existingFile.setDepartment(updatedFile.getDepartment());
         existingFile.setAssignedOfficer(
                 updatedFile.getAssignedOfficer());
         existingFile.setRemarks(updatedFile.getRemarks());
@@ -343,18 +364,21 @@ requireRegistrarOwnership(currentUser, existingFile);
         return officeFileRepository.save(existingFile);
     }
 
-    // Delete a file.
-    public void deleteFile(Long id) {
+   // Delete a file.
+public void deleteFile(Long id) {
 
-        AppUser currentUser = currentUserService.getCurrentUser();
+    AppUser currentUser = currentUserService.getCurrentUser();
 
-        requireFileWritePermission(currentUser);
+    requireFileWritePermission(currentUser);
 
-        // Enforces access to the file before deletion.
-        OfficeFile existingFile = getFileById(id);
+    // Enforces access to the file before deletion.
+    OfficeFile existingFile = getFileById(id);
 
-        officeFileRepository.delete(existingFile);
-    }
+    // Registrars can only delete files they registered.
+    requireRegistrarOwnership(currentUser, existingFile);
+
+    officeFileRepository.delete(existingFile);
+}
 
     // Identify the overall System Admin.
     private boolean isSystemAdmin(AppUser user) {
