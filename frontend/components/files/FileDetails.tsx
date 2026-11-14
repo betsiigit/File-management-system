@@ -286,50 +286,54 @@ export default function FileDetails({
     } finally {
       setIsSaving(false);
     }
-  }
+  }async function handleDelete() {
+  const confirmed = window.confirm(
+    `Are you sure you want to permanently delete file "${file.reference}"?\n\nThis action cannot be undone.`
+  );
 
-  async function handleDelete() {
-    const confirmed = window.confirm(
-      `Are you sure you want to permanently delete file "${file.reference}"?\n\nThis action cannot be undone.`
+  if (!confirmed) return;
+
+  setError("");
+  setMessage("");
+  setIsDeleting(true);
+
+  try {
+    const response = await fetch(
+      `http://localhost:8081/api/office-files/${file.id}`,
+      {
+        method: "DELETE",
+        credentials: "include",
+      }
     );
 
-    if (!confirmed) return;
+    if (!response.ok) {
+      const responseText = await response.text();
 
-    setError("");
-    setMessage("");
-    setIsDeleting(true);
+      console.error("Delete API error:", {
+        status: response.status,
+        response: responseText,
+      });
 
-    try {
-      const response = await fetch(
-        `http://localhost:8081/api/office-files/${file.id}`,
-        {
-          method: "DELETE",
-          credentials: "include",
-        }
+      throw new Error(
+        `Delete failed (${response.status}): ${
+          responseText || "No error details returned."
+        }`
       );
-
-      if (!response.ok) {
-        const responseText = await response.text();
-
-        throw new Error(
-          responseText || `Delete failed (${response.status}).`
-        );
-      }
-
-      onFileDeleted(file.id);
-    } catch (deleteError) {
-      console.error("Failed to delete file:", deleteError);
-
-      setError(
-        deleteError instanceof Error
-          ? deleteError.message
-          : "Could not delete the file. Please try again."
-      );
-    } finally {
-      setIsDeleting(false);
     }
-  }
 
+    onFileDeleted(file.id);
+  } catch (deleteError) {
+    console.error("Failed to delete file:", deleteError);
+
+    setError(
+      deleteError instanceof Error
+        ? deleteError.message
+        : "Could not delete the file. Please try again."
+    );
+  } finally {
+    setIsDeleting(false);
+  }
+}
   function handlePrint() {
     window.print();
   }
