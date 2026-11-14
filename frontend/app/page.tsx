@@ -602,39 +602,71 @@ export default function Home() {
       console.error("Could not load language preference:", error);
     }
   }, []);
+// Load employees for Employee Management.
+async function loadEmployees() {
+  try {
+    const response = await fetch(
+      "http://localhost:8081/api/employees",
+      {
+        credentials: "include",
+      }
+    );
 
-  async function loadEmployees() {
-    try {
-      const response = await fetch(
-        "http://localhost:8081/api/employees",
-        {
-          credentials: "include",
-        }
+    if (!response.ok) {
+      throw new Error("Failed to load employees");
+    }
+
+    const data: Employee[] = await response.json();
+
+    // Keep all employees for Employee Management.
+    setEmployees(data);
+  } catch (error) {
+    console.error("Error loading employees:", error);
+  }
+}
+
+// Load active Officer user accounts for file assignment.
+async function loadOfficers() {
+  try {
+    const response = await fetch(
+      "http://localhost:8081/api/users/available-officers",
+      {
+        credentials: "include",
+        cache: "no-store",
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to load Officer accounts (${response.status})`
+      );
+    }
+
+    const data = await response.json();
+
+    const activeOfficers: string[] = data
+      .filter(
+        (user: {
+          active: boolean;
+          role: string;
+          fullName: string;
+        }) =>
+          user.active === true &&
+          user.role?.toUpperCase() === "OFFICER"
+      )
+      .map(
+        (user: { fullName: string }) => user.fullName
+      )
+      .filter(
+        (name: string) => Boolean(name?.trim())
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to load employees");
-      }
-
-      const data: Employee[] = await response.json();
-
-// Keep all employees for Employee Management
-setEmployees(data);
-
-// Only active employees appear in Assigned Officer dropdown
-const activeOfficers = data
-  .filter(
-    (employee) =>
-      employee.status?.toLowerCase() === "active"
-  )
-  .map((employee) => employee.fullName)
-  .filter((name) => Boolean(name?.trim()));
-
-setOfficers(activeOfficers);
-    } catch (error) {
-      console.error("Error loading employees:", error);
-    }
+    setOfficers(activeOfficers);
+  } catch (error) {
+    console.error("Error loading Officer accounts:", error);
   }
+}
+
 
   useEffect(() => {
     async function loadFiles() {
@@ -758,7 +790,7 @@ setOfficers(activeOfficers);
 
     loadFiles();
     loadEmployees();
-
+    loadOfficers();
     // The initial load intentionally uses the initial file list.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
