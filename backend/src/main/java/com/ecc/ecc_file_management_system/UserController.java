@@ -134,6 +134,43 @@ public class UserController {
         );
     }
 
+    // Return active Officer accounts available for file assignment.
+// System Admin sees officers from all branches.
+// Other authorized users see officers from their own branch.
+@GetMapping("/available-officers")
+@PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'BRANCH_ADMIN', 'REGISTRAR', 'OFFICER')")
+@Transactional(readOnly = true)
+public ResponseEntity<?> getAvailableOfficers(
+        Authentication authentication) {
+
+    AppUser currentUser = getAuthenticatedUser(authentication);
+
+    List<AppUser> officers;
+
+    if (isSystemAdmin(currentUser)) {
+        officers = appUserRepository.findAll();
+    } else {
+        Branch branch = currentUser.getBranch();
+
+        if (branch == null || !branch.isActive()) {
+            return forbidden(
+                    "You are not assigned to an active branch.");
+        }
+
+        officers = appUserRepository.findByBranchId(branch.getId());
+    }
+
+    return ResponseEntity.ok(
+            officers.stream()
+                    .filter(AppUser::isActive)
+                    .filter(user -> user.getRole() != null
+                            && "OFFICER".equalsIgnoreCase(
+                                    user.getRole().trim()))
+                    .map(this::toResponse)
+                    .toList()
+    );
+}
+
     // SYSTEM_ADMIN can create branch administrators and regular users.
     // BRANCH_ADMIN can create regular users in their own branch only.
     @PostMapping
